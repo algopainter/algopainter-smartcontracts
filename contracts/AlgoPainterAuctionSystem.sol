@@ -374,7 +374,7 @@ contract AlgoPainterAuctionSystem is
         view
         returns (uint256)
     {
-        pendingReturns[_auctionId][_address];
+        return pendingReturns[_auctionId][_address];
     }
 
     function withdraw(uint256 _auctionId) public {
@@ -419,7 +419,7 @@ contract AlgoPainterAuctionSystem is
         (netAmount, feeAmount) = getFeeAndNetAmount(_amount, bidFeeRate);
     }
 
-    function endAction(uint256 _auctionId) public {
+    function endAuction(uint256 _auctionId) public {
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
