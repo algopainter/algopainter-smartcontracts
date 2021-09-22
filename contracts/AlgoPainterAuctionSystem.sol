@@ -462,4 +462,38 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionEnded(_auctionId, winner, bidAmount, feeAmount, netAmount);
     }
+
+    function cancelAuction(uint256 _auctionId) public {
+        AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
+
+        require(!auctionInfo.ended, "AlgoPainterAuctionSystem:ALREADY_ENDED");
+
+        require(
+            auctionInfo.highestBidder == 0,
+            "AlgoPainterAuctionSystem:ALREADY_HAS_BIDS"
+        );
+
+        require(
+            msg.sender == auctionInfo.beneficiary,
+            "AlgoPainterAuctionSystem:NOT_AUCTION_OWNER"
+        );
+        
+        if (auctionInfo.tokenType == TokenType.ERC721) {
+            IERC721 token = IERC721(auctionInfo.tokenAddress);
+            token.safeTransferFrom(address(this), msg.sender, auctionInfo.tokenId);
+        } else {
+            IERC1155 token = IERC1155(auctionInfo.tokenAddress);
+            token.safeTransferFrom(
+                address(this),
+                msg.sender,
+                auctionInfo.tokenId,
+                1,
+                DEFAULT_MESSAGE
+            );
+        }
+
+        auctionInfo.ended = true;
+
+        emit AuctionEnded(_auctionId, msg.sender, 0, 0, 0);
+    }
 }
