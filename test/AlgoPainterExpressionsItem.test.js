@@ -1,7 +1,7 @@
 const AlgoPainterToken = artifacts.require('AlgoPainterToken');
 const AlgoPainterExpressionsItem = artifacts.require('AlgoPainterExpressionsItem');
 
-contract.only('AlgoPainterExpressionsItem', accounts => {
+contract('AlgoPainterExpressionsItem', accounts => {
   let instance = null;
 
   it('should deploy the contracts', async () => {

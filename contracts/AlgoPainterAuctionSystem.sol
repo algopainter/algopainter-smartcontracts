@@ -306,7 +306,6 @@ contract AlgoPainterAuctionSystem is
         auctions[_tokenAddress][_tokenId] = auctionInfo.length.sub(1);
         
         auctionSystemManager.onAuctionCreated(
-            address(this),
             auctions[_tokenAddress][_tokenId],
             msg.sender
         );
@@ -402,10 +401,12 @@ contract AlgoPainterAuctionSystem is
         );
 
         if (auctionInfo.highestBid != 0) {
+            (uint256 returnsNetAmount, uint256 returnsFeeAmount) = getBidAmountInfo(auctionInfo.highestBid);
+
             pendingReturns[_auctionId][
                 auctionInfo.highestBidder
             ] = pendingReturns[_auctionId][auctionInfo.highestBidder].add(
-                auctionInfo.highestBid
+                returnsNetAmount
             );
 
             emit PendingReturnsIncreased(
@@ -416,10 +417,9 @@ contract AlgoPainterAuctionSystem is
         }
 
         auctionInfo.highestBidder = msg.sender;
-        auctionInfo.highestBid = netAmount;
+        auctionInfo.highestBid = _amount;
 
         auctionSystemManager.onBid(
-            address(this),
             _auctionId,
             msg.sender,
             _amount,
@@ -458,7 +458,6 @@ contract AlgoPainterAuctionSystem is
             );
 
             auctionSystemManager.onWithdraw(
-                address(this),
                 _auctionId,
                 msg.sender,
                 amount
@@ -511,7 +510,7 @@ contract AlgoPainterAuctionSystem is
 
         address winner = auctionInfo.highestBidder;
         uint256 bidAmount = auctionInfo.highestBid;
-        (uint256 feeAmount, uint256 netAmount) =
+        (uint256 netAmount, uint256 feeAmount) =
             getAuctionAmountInfo(bidAmount);
 
         require(
@@ -541,7 +540,6 @@ contract AlgoPainterAuctionSystem is
         auctionInfo.ended = true;
 
         auctionSystemManager.onAuctionEnded(
-            address(this),
             _auctionId,
             winner,
             bidAmount,
@@ -584,7 +582,6 @@ contract AlgoPainterAuctionSystem is
         auctionInfo.ended = true;
 
         auctionSystemManager.onAuctionCancelled(
-            address(this),
             _auctionId,
             msg.sender
         );

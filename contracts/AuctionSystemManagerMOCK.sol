@@ -6,13 +6,11 @@ import "./IAuctionSystemManager.sol";
 
 contract AuctionSystemManagerMOCK is IAuctionSystemManager {
     function onAuctionCreated(
-        address contractAddress,
         uint256 auctionId,
         address owner
     ) public override {}
 
     function onBid(
-        address contractAddress,
         uint256 auctionId,
         address bidder,
         uint256 amount,
@@ -21,14 +19,12 @@ contract AuctionSystemManagerMOCK is IAuctionSystemManager {
     ) public override {}
 
     function onWithdraw(
-        address contractAddress,
         uint256 auctionId,
         address owner,
         uint256 amount
     ) public override {}
 
     function onAuctionEnded(
-        address contractAddress,
         uint256 auctionId,
         address winner,
         uint256 bidAmount,
@@ -37,7 +33,6 @@ contract AuctionSystemManagerMOCK is IAuctionSystemManager {
     ) public override {}
 
     function onAuctionCancelled(
-        address contractAddress,
         uint256 auctionId,
         address owner
     ) public override {}

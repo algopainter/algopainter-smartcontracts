@@ -1,6 +1,7 @@
 const AlgoPainterToken = artifacts.require('AlgoPainterToken');
 const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
 const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
+const AuctionSystemManagerMOCK = artifacts.require('AuctionSystemManagerMOCK');
 var sleep = require('sleep');
 
 contract('AlgoPainterAuctionSystem', accounts => {
@@ -9,11 +10,13 @@ contract('AlgoPainterAuctionSystem', accounts => {
   let eth = null;
   let gwei = null;
   let auction = null;
+  let auctionSystemManager = null;
 
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
     busd = await AlgoPainterToken.new("BUSD", "BUSD");
     eth = await AlgoPainterToken.new("ETH", "ETH");
+    auctionSystemManager = await AuctionSystemManagerMOCK.new();
 
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
 
@@ -26,7 +29,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
   });
 
   it('should setup auction system', async () => {
-    await auction.setup(accounts[9], 1000, 250, [algop.address, busd.address, eth.address]);
+    await auction.setup(accounts[9], 1000, 250, [algop.address, busd.address, eth.address], auctionSystemManager.address);
 
     expect(await auction.getAddressFee()).to.be.equal(accounts[9]);
     expect((await auction.getAuctionFeeRate()).toString()).to.be.equal('1000');
@@ -38,6 +41,8 @@ contract('AlgoPainterAuctionSystem', accounts => {
     expect(allowedTokens[0]).to.be.equal(algop.address);
     expect(allowedTokens[1]).to.be.equal(busd.address);
     expect(allowedTokens[2]).to.be.equal(eth.address);
+
+    expect(await auction.getAuctionSystemManager()).to.be.equal(auctionSystemManager.address);
   });
 
   it('should create an auction', async () => {
@@ -116,7 +121,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     const auctionInfo = await auction.getAuctionInfo(auctionId);
 
     expect(auctionInfo.highestBidder).to.be.equal(accounts[3], 'fail to check highestBidder');
-    expect(auctionInfo.highestBid.toString()).to.be.equal(web3.utils.toWei('98.5725', 'ether'), 'fail to check highestBid');
+    expect(auctionInfo.highestBid.toString()).to.be.equal(web3.utils.toWei('101.1000', 'ether'), 'fail to check highestBid');
     feeAddressBalance = await algop.balanceOf(accounts[9]);
     auctionBalance = await algop.balanceOf(auction.address);
 
@@ -125,11 +130,10 @@ contract('AlgoPainterAuctionSystem', accounts => {
   });
 
   it('should end an auction', async () => {
-
     const auctionId = await auction.getAuctionId(gwei.address, 1);
 
     try {
-      await auction.endAction(auctionId);
+      await auction.endAuction(auctionId);
       throw {};
     } catch (e) {
       expect(e.reason).to.be.equal('AlgoPainterAuctionSystem:NOT_YET_ENDED');
@@ -137,13 +141,14 @@ contract('AlgoPainterAuctionSystem', accounts => {
 
     console.log('Waiting 20s to finish the auction');
     sleep.sleep(20);
-    await auction.endAction(auctionId);
+
+    await auction.endAuction(auctionId);
 
     const feeAddressBalance = await algop.balanceOf(accounts[9]);
     const auctionBalance = await algop.balanceOf(auction.address);
 
-    expect(feeAddressBalance.toString()).to.be.equal('96267750000000000000', 'fail to check feeAddressBalance');
-    expect(auctionBalance.toString()).to.be.equal('195975000000000000000', 'fail to check auctionBalance');
+    expect(feeAddressBalance.toString()).to.be.equal('17662500000000000000', 'fail to check feeAddressBalance');
+    expect(auctionBalance.toString()).to.be.equal('193447500000000000000', 'fail to check auctionBalance');
 
     const auctionInfo = await auction.getAuctionInfo(auctionId);
 
@@ -166,8 +171,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     await auction.withdraw(auctionId, { from: accounts[1] });
     await auction.withdraw(auctionId, { from: accounts[2] });
 
-    try
-    {
+    try {
       await auction.withdraw(auctionId, { from: accounts[3] });
       throw {};
     } catch (e) {
