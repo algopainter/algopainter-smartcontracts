@@ -5,14 +5,14 @@ interface IAuctionRewardsProvider {
     
     function getBidbackPercentage(
         uint256 _auctionId
-    ) external view returns(uint);
+    ) external view returns(uint256);
 
     function getInvestorPirsPercentage(
-        uint256 _auctionId
-    ) external view returns(uint);
+        address _tokenAddress, uint256 _tokenId
+    ) external view returns(uint256);
 
     function getCreatorPirsPercentage(
-        uint256 _algoPainterId, uint256 _tokenId
-    ) external view returns(uint);
-
+        address _tokenAddress, uint256 _tokenId
+    ) external view returns(uint256);
+    
 }
