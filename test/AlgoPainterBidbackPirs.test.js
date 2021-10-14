@@ -9,6 +9,7 @@ contract('AlgoPainterBidBackPirs', accounts => {
   let bidbackPirs = null;
   let gwei = null;
 
+
   it('should deploy the contracts', async () => {
 
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
@@ -23,33 +24,74 @@ contract('AlgoPainterBidBackPirs', accounts => {
 
   });
 
-  it('Should get bidback and investor and creator PIRS', async () => {
 
-    const auctionId = await auction.getAuctionId(gwei.address, 1);
+  it('Should set max creator pirs and a creator pirs for a collection', async () => {
 
     try {
-      await bidbackPirs.setBidbackAndInvestorPirsPercentage(auctionId, 10, 10);
+      await bidbackPirs.setMaxCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 30);
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setBidbackAndInvestorPirsPercentage error');
+      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setMaxCreatorPirsPercentage error');
     }
 
-    const auctionBidback = await bidbackPirs.getBidbackPercentage(auctionId);
-
-    expect(auctionBidback.toString()).to.be.equal('10', 'fail to check auctionBidback');
-
-    const auctionInvestorPirs = await bidbackPirs.getInvestorPirsPercentage(auctionId);
-
-    expect(auctionInvestorPirs.toString()).to.be.equal('10', 'fail to check auctionInvestorPirs');
+    expect((await bidbackPirs.getMaxCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154')).toString()).to.be.equal('30', 'fail to check maxCreatorPirsPercentage');
 
     try {
-      await bidbackPirs.setCreatorPirsPercentage(0, 1, 10);
+      await bidbackPirs.setCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 25);
     } catch (e) {
       expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setCreatorPirsPercentage error');
     }
 
-    const auctionCreatorPirs = await bidbackPirs.getCreatorPirsPercentage(0, 1);
-
-    expect(auctionCreatorPirs.toString()).to.be.equal('10', 'fail to check auctionCreatorPirs');
+    expect((await bidbackPirs.getCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154')).toString()).to.be.equal('25', 'fail to check creatorPirsPercentage');
 
   });
+
+
+  it('Should set max investor pirs for all collections and a investor pirs for a specific image in a collection', async () => {
+
+    try {
+      await bidbackPirs.setMaxInvestorPirsPercentage(30);
+    } catch (e) {
+      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setMaxInvestorPirsPercentage error');
+    }
+
+    expect((await bidbackPirs.getMaxInvestorPirsPercentage()).toString()).to.be.equal('30', 'fail to check maxInvestorPirsPercentage');
+
+    try {
+      await bidbackPirs.setInvestorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 0, 25);
+    } catch (e) {
+      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setInvestorPirsPercentage error');
+    }
+
+    expect((await bidbackPirs.getInvestorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 0)).toString()).to.be.equal('25', 'fail to check creatorPirsPercentage');
+
+  });
+
+
+  it('Should set max bidback for all auctions and a bidback for a specific auction', async () => {
+
+    const auctionId = await auction.getAuctionId(gwei.address, 1);
+    const auctionSystemAddress = await bidbackPirs.setAuctionSystemAddress(auction.address);
+
+    console.log('auction.address', auction.address);
+
+    try {
+      await bidbackPirs.setMaxBidbackPercentage(10);
+    } catch (e) {
+      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setMaxBidbackPercentage error');
+    }
+
+    expect((await bidbackPirs.getMaxBidbackPercentage()).toString()).to.be.equal('10', 'fail to check maxBidbackPercentage');
+  
+    try {
+      await bidbackPirs.setBidbackPercentage(auctionId, 10);
+    } catch (e) {
+      console.log('e.reason', e.reason);
+      console.log('e', e);
+      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setBidbackPercentage error');
+    }
+
+    expect((await bidbackPirs.getBidbackPercentage(auctionId)).toString()).to.be.equal('10', 'fail to check bidbackPercentage');
+
+  });
+
 });

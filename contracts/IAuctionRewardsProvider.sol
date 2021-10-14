@@ -12,7 +12,7 @@ interface IAuctionRewardsProvider {
     ) external view returns(uint256);
 
     function getCreatorPirsPercentage(
-        address _tokenAddress, uint256 _tokenId
+        address _tokenAddress
     ) external view returns(uint256);
     
 }

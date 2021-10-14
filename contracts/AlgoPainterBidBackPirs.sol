@@ -21,14 +21,14 @@ contract AlgoPainterBidBackPirs is
 
     mapping(uint256 => uint256) bidbackPercentagePerAuction;
     mapping(address => mapping(uint256 => uint256)) investorPirsPercentagePerImage;
-    mapping(address => mapping(uint256 => uint256)) creatorPirsPercentagePerCollection;
+    mapping(address => uint256) creatorPirsPercentagePerCollection;
 
     mapping(address => uint256) maxCreatorPirsPercentagePerCollection;
     uint256 maxInvestorPirsPercentage;
     uint256 maxBidbackPercentage;
     
     mapping(uint256 => bool) isBidbackSet;
-    mapping(address => mapping(uint256 => bool)) isCreatorPirsSet;
+    mapping(address => bool) isCreatorPirsSet;
     mapping(address => mapping(uint256 => bool)) isInvestorPirsSet;
 
     function setMaxCreatorPirsPercentage(address _tokenAddress, uint256 _maxCreatorPirsPercentage)
@@ -111,8 +111,8 @@ contract AlgoPainterBidBackPirs is
             "AlgoPainterAuctionSystem:CREATOR_PIRS_IS_GREATER_THAN_ALLOWED"
         );
 
-        creatorPirsPercentagePerCollection[_tokenId] = _creatorPirsPercentage;
-        isCreatorPirsSet[_tokenId] = true;
+        creatorPirsPercentagePerCollection[_tokenAddress] = _creatorPirsPercentage;
+        isCreatorPirsSet[_tokenAddress] = true;
     }
     
     function getBidbackPercentage(uint256 _auctionId) 
@@ -133,21 +133,21 @@ contract AlgoPainterBidBackPirs is
         return investorPirsPercentagePerImage[_tokenAddress][_tokenId];
     }
 
-    function getCreatorPirsPercentage(address _tokenAddress, uint256 _tokenId)
+    function getCreatorPirsPercentage(address _tokenAddress)
         public
         view
         override
         returns(uint256) 
     {
-        return creatorPirsPercentagePerImage[_tokenAddress][_tokenId];
+        return creatorPirsPercentagePerCollection[_tokenAddress];
     }
     
-    function getMaxCreatorPirsPercentage(uint256 _tokenId)
+    function getMaxCreatorPirsPercentage(address _tokenAddress)
         public 
         view 
         returns(uint256) 
     {
-        return maxCreatorPirsPercentagePerCollection[_tokenId];
+        return maxCreatorPirsPercentagePerCollection[_tokenAddress];
     }
     
     function getMaxInvestorPirsPercentage()
