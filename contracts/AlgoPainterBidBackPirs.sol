@@ -2,22 +2,14 @@
 pragma solidity >=0.6.0;
 
 import "./IAuctionRewardsProvider.sol";
-import "./AlgoPainterAuctionSystemAccessControl.sol";
+import "./AlgoPainterBidBackPirsAccessControl.sol";
 import "./AlgoPainterAuctionSystem.sol";
 
 contract AlgoPainterBidBackPirs is 
     IAuctionRewardsProvider,
-    AlgoPainterAuctionSystemAccessControl
+    AlgoPainterBidBackPirsAccessControl
 {
-    
     AlgoPainterAuctionSystem auctionSystemAddress;
-    
-    function setAuctionSystemAddress(AlgoPainterAuctionSystem _auctionSystemAddress)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        external
-    {
-        auctionSystemAddress = _auctionSystemAddress;
-    }
 
     mapping(uint256 => uint256) bidbackPercentagePerAuction;
     mapping(address => mapping(uint256 => uint256)) investorPirsPercentagePerImage;
@@ -30,6 +22,13 @@ contract AlgoPainterBidBackPirs is
     mapping(uint256 => bool) isBidbackSet;
     mapping(address => bool) isCreatorPirsSet;
     mapping(address => mapping(uint256 => bool)) isInvestorPirsSet;
+
+    function setAuctionSystemAddress(AlgoPainterAuctionSystem _auctionSystemAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        auctionSystemAddress = _auctionSystemAddress;
+    }
 
     function setMaxCreatorPirsPercentage(address _tokenAddress, uint256 _maxCreatorPirsPercentage)
         public 
@@ -55,24 +54,23 @@ contract AlgoPainterBidBackPirs is
     function setBidbackPercentage(uint256 _auctionId, uint256 _bidbackPercentage)
         public 
     {
-        
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
-        
-        (address beneficiary ,,,,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
+
+        (address beneficiary,,,,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
 
         require(
             msg.sender == beneficiary,
-            "AlgoPainterAuctionSystem:NOT_AUCTION_OWNER"
+            "AlgoPainterBidBackPirs:NOT_AUCTION_OWNER"
         );
         
         require(
             isBidbackSet[_auctionId] == false,
-            "AlgoPainterAuctionSystem:BIDBACK_ALREADY_SET"
+            "AlgoPainterBidBackPirs:BIDBACK_ALREADY_SET"
         );
         
         require(
             _bidbackPercentage <= maxBidbackPercentage,
-            "AlgoPainterAuctionSystem:BIDBACK_IS_GREATER_THAN_ALLOWED"
+            "AlgoPainterBidBackPirs:BIDBACK_IS_GREATER_THAN_ALLOWED"
         );
         
         bidbackPercentagePerAuction[_auctionId] = _bidbackPercentage;
@@ -85,12 +83,12 @@ contract AlgoPainterBidBackPirs is
         
         require(
             isInvestorPirsSet[_tokenAddress][_tokenId] == false,
-            "AlgoPainterAuctionSystem:INVESTOR_PIRS_ALREADY_SET"
+            "AlgoPainterBidBackPirs:INVESTOR_PIRS_ALREADY_SET"
         );
         
         require(
             _investorPirsPercentage <= maxInvestorPirsPercentage,
-            "AlgoPainterAuctionSystem:INVESTOR_PIRS_IS_GREATER_THAN_ALLOWED"
+            "AlgoPainterBidBackPirs:INVESTOR_PIRS_IS_GREATER_THAN_ALLOWED"
         );
 
         investorPirsPercentagePerImage[_tokenAddress][_tokenId] = _investorPirsPercentage;
@@ -103,12 +101,12 @@ contract AlgoPainterBidBackPirs is
         
         require(
             isCreatorPirsSet[_tokenAddress] == false,
-            "AlgoPainterAuctionSystem:CREATOR_PIRS_ALREADY_SET"
+            "AlgoPainterBidBackPirs:CREATOR_PIRS_ALREADY_SET"
         );
         
         require(
             _creatorPirsPercentage <= maxCreatorPirsPercentagePerCollection[_tokenAddress],
-            "AlgoPainterAuctionSystem:CREATOR_PIRS_IS_GREATER_THAN_ALLOWED"
+            "AlgoPainterBidBackPirs:CREATOR_PIRS_IS_GREATER_THAN_ALLOWED"
         );
 
         creatorPirsPercentagePerCollection[_tokenAddress] = _creatorPirsPercentage;

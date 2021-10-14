@@ -2,6 +2,7 @@ const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
 const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
 const AlgoPainterBidbackPirs = artifacts.require('AlgoPainterBidBackPirs');
 const AlgoPainterToken = artifacts.require('AlgoPainterToken');
+const AuctionSystemManagerMOCK = artifacts.require('AuctionSystemManagerMOCK');
 
 contract('AlgoPainterBidBackPirs', accounts => {
   let algop = null;
@@ -9,21 +10,28 @@ contract('AlgoPainterBidBackPirs', accounts => {
   let bidbackPirs = null;
   let gwei = null;
 
-
   it('should deploy the contracts', async () => {
-
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
     auction = await AlgoPainterAuctionSystem.new();
     bidbackPirs = await AlgoPainterBidbackPirs.new();
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
+    auctionSystemManager = await AuctionSystemManagerMOCK.new();
+
+    await auction.setup(accounts[9], 1000, 250, [algop.address], auctionSystemManager.address);
+
+    await bidbackPirs.setAuctionSystemAddress(auction.address);
 
     const amount = web3.utils.toWei('300', 'ether');
 
     await algop.approve(gwei.address, amount);
     await gwei.mint(1, 'new text', false, 0, 2, amount, 'URI');
 
-  });
+    const now = parseInt((await auction.getNow()).toString());
+    const expirationTime = (now + 20).toString();
 
+    await gwei.setApprovalForAll(auction.address, true);
+    await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address, 10000);
+  });
 
   it('Should set max creator pirs and a creator pirs for a collection', async () => {
 
@@ -68,30 +76,15 @@ contract('AlgoPainterBidBackPirs', accounts => {
 
 
   it('Should set max bidback for all auctions and a bidback for a specific auction', async () => {
-
     const auctionId = await auction.getAuctionId(gwei.address, 1);
-    const auctionSystemAddress = await bidbackPirs.setAuctionSystemAddress(auction.address);
 
-    console.log('auction.address', auction.address);
-
-    try {
-      await bidbackPirs.setMaxBidbackPercentage(10);
-    } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setMaxBidbackPercentage error');
-    }
+    await bidbackPirs.setMaxBidbackPercentage(10);
 
     expect((await bidbackPirs.getMaxBidbackPercentage()).toString()).to.be.equal('10', 'fail to check maxBidbackPercentage');
   
-    try {
-      await bidbackPirs.setBidbackPercentage(auctionId, 10);
-    } catch (e) {
-      console.log('e.reason', e.reason);
-      console.log('e', e);
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setBidbackPercentage error');
-    }
+    await bidbackPirs.setBidbackPercentage(parseInt(auctionId.toString()), 10);
 
     expect((await bidbackPirs.getBidbackPercentage(auctionId)).toString()).to.be.equal('10', 'fail to check bidbackPercentage');
-
   });
 
 });
