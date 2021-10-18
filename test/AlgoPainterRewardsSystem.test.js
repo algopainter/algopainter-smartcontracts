@@ -2,8 +2,9 @@ const AlgoPainterToken = artifacts.require('AlgoPainterToken');
 const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
 const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
 const AlgoPainterRewardsSystem = artifacts.require('AlgoPainterRewardsSystem');
+const sleep = require('sleep');
 
-contract('AlgoPainterRewardsSystem', (accounts) => {
+contract.only('AlgoPainterRewardsSystem', (accounts) => {
   const AUCTION_FEE_ACCOUNT = accounts[9];
   const GWEI_OWNER_ACCOUNT = accounts[8];
 
@@ -22,9 +23,10 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
     await gwei.mint(1, 'new text', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI');
     await gwei.setApprovalForAll(auctionSystem.address, true);
     
-    await auctionSystem.setup(AUCTION_FEE_ACCOUNT, 1000, 500, [algopToken.address], rewardsSystemManager.address);
+    await auctionSystem.setup(AUCTION_FEE_ACCOUNT, rewardsSystemManager.address, 1000, 500, [algopToken.address], rewardsSystemManager.address);
 
     await rewardsSystemManager.setRewardsTokenAddress(algopToken.address);
+    await rewardsSystemManager.setAuctionSystemAddress(auctionSystem.address);
 
     const baseAmount = web3.utils.toWei('1000000', 'ether');
 
@@ -34,9 +36,9 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
   });
 
   it('Only setup contract can call rewards system', async () => {
-    try {
-      const now = await auctionSystem.getNow();
+    const now = parseInt((await auctionSystem.getNow()).toString());
 
+    try {
       await auctionSystem.createAuction(
         0,
         gwei.address,
@@ -54,8 +56,6 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
 
     await rewardsSystemManager.setAllowedSender(auctionSystem.address);
     
-    const now = await auctionSystem.getNow();
-
     await auctionSystem.createAuction(
       0,
       gwei.address,
@@ -158,5 +158,65 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
     expect(bidBackPercentages.length).to.be.equal(2);
     expect(bidBackPercentages[0].toString()).to.be.equal('2500');
     expect(bidBackPercentages[1].toString()).to.be.equal('7500');
+  });
+
+  it('Users can\'t claim bidback on auction that has not yet ended', async () => {
+    try {
+      await rewardsSystemManager.claimBidback(0);
+      throw {};
+    } catch (error) {
+      expect(error.reason).to.be.equal('AlgoPainterRewardsSystem: NOT_YET_ENDED');
+    }
+  });
+
+  it('Users can\'t stake or unstake bidback on an ended auction', async () => {
+    sleep.sleep(20);
+
+    const rewardsSystemBalance = await algopToken.balanceOf(rewardsSystemManager.address);
+    expect(rewardsSystemBalance.toString()).to.be.equal(web3.utils.toWei('400', 'ether'));
+
+    await auctionSystem.endAuction(0);
+
+    const rewardsSystemBalanceUpdated = await algopToken.balanceOf(rewardsSystemManager.address);
+    expect(rewardsSystemBalanceUpdated.toString()).to.be.equal(web3.utils.toWei('418', 'ether'));
+
+    try {
+      await algopToken.approve(rewardsSystemManager.address, web3.utils.toWei('100', 'ether'));
+      await rewardsSystemManager.stakeBidback(0, web3.utils.toWei('100', 'ether'));
+      throw {};
+    } catch (error) {
+      expect(error.reason).to.be.equal('AlgoPainterRewardsSystem: AUCTION_ENDED');
+    }
+
+    try {
+      await rewardsSystemManager.unstakeBidback(0, web3.utils.toWei('100', 'ether'));
+      throw {};
+    } catch (error) {
+      expect(error.reason).to.be.equal('AlgoPainterRewardsSystem: AUCTION_ENDED');
+    }
+  });
+
+  it('Claim bidback', async () => {
+    const account0Balance = await algopToken.balanceOf(accounts[0]);
+    expect(account0Balance.toString()).to.be.equal(web3.utils.toWei('96999662', 'ether'));
+
+    await rewardsSystemManager.claimBidback(0);
+
+    const account0BalanceUpdated = await algopToken.balanceOf(accounts[0]);
+    expect(account0BalanceUpdated.toString()).to.be.equal(web3.utils.toWei('96999666.5', 'ether'));
+
+    const rewardsSystemBalance = await algopToken.balanceOf(rewardsSystemManager.address);
+    expect(rewardsSystemBalance.toString()).to.be.equal(web3.utils.toWei('413.5', 'ether'));
+
+    const account1Balance = await algopToken.balanceOf(accounts[1]);
+    expect(account1Balance.toString()).to.be.equal(web3.utils.toWei('999500', 'ether'));
+
+    await rewardsSystemManager.claimBidback(0, { from: accounts[1] });
+
+    const account1BalanceUpdated = await algopToken.balanceOf(accounts[1]);
+    expect(account1BalanceUpdated.toString()).to.be.equal(web3.utils.toWei('999513.5', 'ether'));
+
+    const rewardsSystemBalance2 = await algopToken.balanceOf(rewardsSystemManager.address);
+    expect(rewardsSystemBalance2.toString()).to.be.equal(web3.utils.toWei('400', 'ether'));
   });
 });

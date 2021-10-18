@@ -29,6 +29,7 @@ contract AuctionSystemManagerMOCK is IAuctionSystemManager {
         address winner,
         uint256 bidAmount,
         uint256 feeAmount,
+        uint256 bidbackAmount,
         uint256 netAmount
     ) public override {}
 

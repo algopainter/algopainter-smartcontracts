@@ -93,11 +93,13 @@ contract AlgoPainterAuctionSystem is
     );
 
     address addressFee;
+    address rewardsSystemAddress;
     uint256 auctionFeeRate;
     uint256 bidFeeRate;
 
     event AuctionSystemSetup(
         address addressFee,
+        address rewardsSystemAddress,
         uint256 auctionFeeRate,
         uint256 bidFeeRate,
         IERC20[] allowedTokens,
@@ -110,6 +112,10 @@ contract AlgoPainterAuctionSystem is
 
     function getAddressFee() public view returns (address) {
         return addressFee;
+    }
+
+    function getRewardsSystemAddress() public view returns (address) {
+        return rewardsSystemAddress;
     }
 
     function getAuctionFeeRate() public view returns (uint256) {
@@ -130,6 +136,7 @@ contract AlgoPainterAuctionSystem is
 
     function setup(
         address _addressFee,
+        address _rewardsSystemAddress,
         uint256 _auctionFeeRate,
         uint256 _bidFeeRate,
         IERC20[] memory _allowedTokens,
@@ -145,6 +152,7 @@ contract AlgoPainterAuctionSystem is
         );
 
         addressFee = _addressFee;
+        rewardsSystemAddress = _rewardsSystemAddress;
         auctionFeeRate = _auctionFeeRate;
         bidFeeRate = _bidFeeRate;
         auctionSystemManager = _auctionSystemManager;
@@ -161,6 +169,7 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             _addressFee,
+            _rewardsSystemAddress,
             _auctionFeeRate,
             _bidFeeRate,
             _allowedTokens,
@@ -176,6 +185,7 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
@@ -201,6 +211,7 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
@@ -217,6 +228,7 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
@@ -232,6 +244,7 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
@@ -513,8 +526,16 @@ contract AlgoPainterAuctionSystem is
         (uint256 netAmount, uint256 feeAmount) =
             getAuctionAmountInfo(bidAmount);
 
+        (uint256 finalNetAmount, uint256 bidbackAmount) =
+            getFeeAndNetAmount(netAmount, auctionInfo.bidBackFee);
+
         require(
-            tokenPrice.transfer(auctionInfo.beneficiary, netAmount),
+            tokenPrice.transfer(rewardsSystemAddress, bidbackAmount),
+            "AlgoPainterAuctionSystem:FAIL_TO_PAY_REWARDS_SYSTEM"
+        );
+
+        require(
+            tokenPrice.transfer(auctionInfo.beneficiary, finalNetAmount),
             "AlgoPainterAuctionSystem:FAIL_TO_PAY_BENEFICIARY"
         );
 
@@ -544,6 +565,7 @@ contract AlgoPainterAuctionSystem is
             winner,
             bidAmount,
             feeAmount,
+            bidbackAmount,
             netAmount
         );
 

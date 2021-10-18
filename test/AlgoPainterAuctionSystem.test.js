@@ -29,7 +29,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
   });
 
   it('should setup auction system', async () => {
-    await auction.setup(accounts[9], 1000, 250, [algop.address, busd.address, eth.address], auctionSystemManager.address);
+    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address, busd.address, eth.address], auctionSystemManager.address);
 
     expect(await auction.getAddressFee()).to.be.equal(accounts[9]);
     expect((await auction.getAuctionFeeRate()).toString()).to.be.equal('1000');
