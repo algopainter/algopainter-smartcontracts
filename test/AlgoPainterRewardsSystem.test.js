@@ -203,10 +203,10 @@ contract.only('AlgoPainterRewardsSystem', (accounts) => {
     await rewardsSystemManager.claimBidback(0);
 
     const account0BalanceUpdated = await algopToken.balanceOf(accounts[0]);
-    expect(account0BalanceUpdated.toString()).to.be.equal(web3.utils.toWei('96999666.5', 'ether'));
+    expect(account0BalanceUpdated.toString()).to.be.equal(web3.utils.toWei('96999766.5', 'ether'));
 
     const rewardsSystemBalance = await algopToken.balanceOf(rewardsSystemManager.address);
-    expect(rewardsSystemBalance.toString()).to.be.equal(web3.utils.toWei('413.5', 'ether'));
+    expect(rewardsSystemBalance.toString()).to.be.equal(web3.utils.toWei('313.5', 'ether'));
 
     const account1Balance = await algopToken.balanceOf(accounts[1]);
     expect(account1Balance.toString()).to.be.equal(web3.utils.toWei('999500', 'ether'));
@@ -214,9 +214,9 @@ contract.only('AlgoPainterRewardsSystem', (accounts) => {
     await rewardsSystemManager.claimBidback(0, { from: accounts[1] });
 
     const account1BalanceUpdated = await algopToken.balanceOf(accounts[1]);
-    expect(account1BalanceUpdated.toString()).to.be.equal(web3.utils.toWei('999513.5', 'ether'));
+    expect(account1BalanceUpdated.toString()).to.be.equal(web3.utils.toWei('999813.5', 'ether'));
 
     const rewardsSystemBalance2 = await algopToken.balanceOf(rewardsSystemManager.address);
-    expect(rewardsSystemBalance2.toString()).to.be.equal(web3.utils.toWei('400', 'ether'));
+    expect(rewardsSystemBalance2.toString()).to.be.equal(web3.utils.toWei('0', 'ether'));
   });
 });

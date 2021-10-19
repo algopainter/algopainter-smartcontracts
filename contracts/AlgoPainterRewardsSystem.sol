@@ -41,6 +41,10 @@ contract AlgoPainterRewardsSystem is
         allowedSender = _allowedSender;
     }
 
+    function getAllowedSender() public view returns (address) {
+        return allowedSender;
+    }
+
     function setRewardsTokenAddress(IERC20 _rewardsTokenAddress)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -48,11 +52,19 @@ contract AlgoPainterRewardsSystem is
         rewardsTokenAddress = _rewardsTokenAddress;
     }
 
+    function getRewardsTokenAddress() public view returns (IERC20) {
+        return rewardsTokenAddress;
+    }
+
     function setAuctionSystemAddress(AlgoPainterAuctionSystem _auctionSystemAddress)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         auctionSystemAddress = _auctionSystemAddress;
+    }
+
+    function getAuctionSystemAddress() public view returns (AlgoPainterAuctionSystem) {
+        return auctionSystemAddress;
     }
 
     function getTotalBidbackStakes(
@@ -91,10 +103,6 @@ contract AlgoPainterRewardsSystem is
         uint256 auctionId,
         address owner
     ) override external {        
-        require(
-            msg.sender == allowedSender,
-            "AlgoPainterRewardsSystem: INVALID_SENDER"
-        );
     }
 
     function onBid(
@@ -117,7 +125,6 @@ contract AlgoPainterRewardsSystem is
         address owner,
         uint256 amount
     ) override external {
-        
     }
 
     function onAuctionEnded(
@@ -229,23 +236,6 @@ contract AlgoPainterRewardsSystem is
         computePirsPercentages(auctionId);
     }
 
-    function withdrawBidback(uint256 auctionId, uint256 amount) external {
-        AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
-
-        (,,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
-
-        require(ended, "AlgoPainterRewardsSystem: AUCTION_ENDED");
-
-        bidbackStakes[auctionId][msg.sender] = bidbackStakes[auctionId][msg.sender].sub(amount);
-
-        IERC20 rewardsToken = IERC20(rewardsTokenAddress);
-
-        require(
-            rewardsToken.transfer(msg.sender, amount),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_BIDBACK_WITHDRAW"
-        );
-    }
-
     function withdrawPirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
@@ -302,6 +292,15 @@ contract AlgoPainterRewardsSystem is
             bidbackToken.transfer(msg.sender, bidbackEarnings),
             "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_BIDBACK"
         );
+
+        IERC20 rewardsToken = IERC20(rewardsTokenAddress);
+
+        require(
+            rewardsToken.transfer(msg.sender, bidbackStakes[auctionId][msg.sender]),
+            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_BIDBACK_WITHDRAW"
+        );
+
+        bidbackStakes[auctionId][msg.sender] = 0;
     }
 
     function claimPirs(uint256 auctionId) external {
