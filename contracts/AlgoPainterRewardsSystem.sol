@@ -103,6 +103,10 @@ contract AlgoPainterRewardsSystem is
         uint256 auctionId,
         address owner
     ) override external {        
+        require(
+            msg.sender == allowedSender,
+            "AlgoPainterRewardsSystem: INVALID_SENDER"
+        );
     }
 
     function onBid(
