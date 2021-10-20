@@ -25,12 +25,14 @@ contract AlgoPainterRewardsSystem is
     mapping(uint256 => uint256) private totalBidbackStakes;
     mapping(uint256 => uint256) private bidbackAmountMapping;
     mapping(uint256 => address[]) private bidbackUsers;
+    mapping(uint256 => mapping(address => bool)) private bidbackUsersMapping;
     mapping(uint256 => mapping(address => uint256)) private bidbackStakes;
     mapping(uint256 => mapping(address => uint256)) private bidbackPercentages;
 
     mapping(uint256 => uint256) private totalPirsStakes;
     mapping(uint256 => uint256) private pirsAmountMapping;
     mapping(uint256 => address[]) private pirsUsers;
+    mapping(uint256 => mapping(address => bool)) private pirsUsersMapping;
     mapping(uint256 => mapping(address => uint256)) private pirsStakes;
     mapping(uint256 => mapping(address => uint256)) private pirsPercentages;
 
@@ -174,7 +176,11 @@ contract AlgoPainterRewardsSystem is
 
         totalBidbackStakes[auctionId] = totalBidbackStakes[auctionId].add(amount);
         bidbackStakes[auctionId][msg.sender] = bidbackStakes[auctionId][msg.sender].add(amount);
-        bidbackUsers[auctionId].push(msg.sender);
+
+        if (!bidbackUsersMapping[auctionId][msg.sender]) {
+            bidbackUsers[auctionId].push(msg.sender);
+            bidbackUsersMapping[auctionId][msg.sender] = true;
+        }
 
         computeBidbackPercentages(auctionId);
     }
@@ -215,7 +221,11 @@ contract AlgoPainterRewardsSystem is
 
         totalPirsStakes[auctionId] = totalPirsStakes[auctionId].add(amount);
         pirsStakes[auctionId][msg.sender] = pirsStakes[auctionId][msg.sender].add(amount);
-        pirsUsers[auctionId].push(msg.sender);
+
+        if (!pirsUsersMapping[auctionId][msg.sender]) {
+            pirsUsers[auctionId].push(msg.sender);
+            pirsUsersMapping[auctionId][msg.sender] = true;
+        }
 
         computePirsPercentages(auctionId);
     }

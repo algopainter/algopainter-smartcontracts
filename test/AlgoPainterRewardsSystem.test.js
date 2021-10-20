@@ -87,7 +87,10 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
     await algopToken.approve(auctionSystem.address, bidAmount);
     await auctionSystem.bid(auctionId, bidAmount)
 
-    const stakeAmount = web3.utils.toWei('200', 'ether');
+    const stakeAmount = web3.utils.toWei('100', 'ether');
+    await algopToken.approve(rewardsSystemManager.address, stakeAmount);
+    await rewardsSystemManager.stakeBidback(auctionId, stakeAmount);
+
     await algopToken.approve(rewardsSystemManager.address, stakeAmount);
     await rewardsSystemManager.stakeBidback(auctionId, stakeAmount);
 
