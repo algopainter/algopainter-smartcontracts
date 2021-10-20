@@ -1,23 +1,25 @@
 // SPDX-License-Identifier: GPL-v3
 pragma solidity >=0.6.0;
 
-import "./IAuctionRewardsProvider.sol";
+import "./IAuctionRewardsRatesProvider.sol";
+import "./IAuctionRewardsTotalRatesProvider.sol";
 import "./AlgoPainterBidBackPirsAccessControl.sol";
 import "./AlgoPainterAuctionSystem.sol";
 
 contract AlgoPainterBidBackPirs is 
-    IAuctionRewardsProvider,
+    IAuctionRewardsRatesProvider,
+    IAuctionRewardsTotalRatesProvider,
     AlgoPainterBidBackPirsAccessControl
 {
     AlgoPainterAuctionSystem auctionSystemAddress;
 
-    mapping(uint256 => uint256) bidbackPercentagePerAuction;
-    mapping(address => mapping(uint256 => uint256)) investorPirsPercentagePerImage;
-    mapping(address => uint256) creatorPirsPercentagePerCollection;
+    mapping(uint256 => uint256) bidbackRatePerAuction;
+    mapping(address => mapping(uint256 => uint256)) investorPirsRatePerImage;
+    mapping(address => uint256) creatorPirsRatePerCollection;
 
-    mapping(address => uint256) maxCreatorPirsPercentagePerCollection;
-    uint256 maxInvestorPirsPercentage;
-    uint256 maxBidbackPercentage;
+    mapping(address => uint256) maxCreatorPirsRatePerCollection;
+    uint256 maxInvestorPirsRate;
+    uint256 maxBidbackRate;
     
     mapping(uint256 => bool) isBidbackSet;
     mapping(address => bool) isCreatorPirsSet;
@@ -30,28 +32,28 @@ contract AlgoPainterBidBackPirs is
         auctionSystemAddress = _auctionSystemAddress;
     }
 
-    function setMaxCreatorPirsPercentage(address _tokenAddress, uint256 _maxCreatorPirsPercentage)
+    function setMaxCreatorPirsRate(address _tokenAddress, uint256 _maxCreatorPirsRate)
         public 
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        maxCreatorPirsPercentagePerCollection[_tokenAddress] = _maxCreatorPirsPercentage;
+        maxCreatorPirsRatePerCollection[_tokenAddress] = _maxCreatorPirsRate;
     }
     
-    function setMaxInvestorPirsPercentage(uint256 _maxInvestorPirsPercentage)
+    function setMaxInvestorPirsRate(uint256 _maxInvestorPirsRate)
         public 
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        maxInvestorPirsPercentage = _maxInvestorPirsPercentage;
+        maxInvestorPirsRate = _maxInvestorPirsRate;
     }
     
-    function setMaxBidbackPercentage(uint256 _maxBidbackPercentage)
+    function setMaxBidbackRate(uint256 _maxBidbackRate)
         public 
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        maxBidbackPercentage = _maxBidbackPercentage;
+        maxBidbackRate = _maxBidbackRate;
     }
     
-    function setBidbackPercentage(uint256 _auctionId, uint256 _bidbackPercentage)
+    function setBidbackRate(uint256 _auctionId, uint256 _bidbackRate)
         public 
     {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
@@ -69,15 +71,15 @@ contract AlgoPainterBidBackPirs is
         );
         
         require(
-            _bidbackPercentage <= maxBidbackPercentage,
+            _bidbackRate <= maxBidbackRate,
             "AlgoPainterBidBackPirs:BIDBACK_IS_GREATER_THAN_ALLOWED"
         );
         
-        bidbackPercentagePerAuction[_auctionId] = _bidbackPercentage;
+        bidbackRatePerAuction[_auctionId] = _bidbackRate;
         isBidbackSet[_auctionId] = true;
     }
     
-    function setInvestorPirsPercentage(address _tokenAddress, uint256 _tokenId, uint256 _investorPirsPercentage)
+    function setInvestorPirsRate(address _tokenAddress, uint256 _tokenId, uint256 _investorPirsRate)
         public 
     {
         
@@ -87,15 +89,15 @@ contract AlgoPainterBidBackPirs is
         );
         
         require(
-            _investorPirsPercentage <= maxInvestorPirsPercentage,
+            _investorPirsRate <= maxInvestorPirsRate,
             "AlgoPainterBidBackPirs:INVESTOR_PIRS_IS_GREATER_THAN_ALLOWED"
         );
 
-        investorPirsPercentagePerImage[_tokenAddress][_tokenId] = _investorPirsPercentage;
+        investorPirsRatePerImage[_tokenAddress][_tokenId] = _investorPirsRate;
         isInvestorPirsSet[_tokenAddress][_tokenId] = true;
     }
     
-    function setCreatorPirsPercentage(address _tokenAddress, uint256 _creatorPirsPercentage)
+    function setCreatorPirsRate(address _tokenAddress, uint256 _creatorPirsRate)
         public
     {
         
@@ -105,63 +107,78 @@ contract AlgoPainterBidBackPirs is
         );
         
         require(
-            _creatorPirsPercentage <= maxCreatorPirsPercentagePerCollection[_tokenAddress],
+            _creatorPirsRate <= maxCreatorPirsRatePerCollection[_tokenAddress],
             "AlgoPainterBidBackPirs:CREATOR_PIRS_IS_GREATER_THAN_ALLOWED"
         );
 
-        creatorPirsPercentagePerCollection[_tokenAddress] = _creatorPirsPercentage;
+        creatorPirsRatePerCollection[_tokenAddress] = _creatorPirsRate;
         isCreatorPirsSet[_tokenAddress] = true;
     }
     
-    function getBidbackPercentage(uint256 _auctionId) 
+    function getBidbackRate(uint256 _auctionId) 
         public 
         view 
         override
         returns(uint256) 
     {
-        return bidbackPercentagePerAuction[_auctionId];
+        return bidbackRatePerAuction[_auctionId];
     }
 
-    function getInvestorPirsPercentage(address _tokenAddress, uint256 _tokenId)
+    function getInvestorPirsRate(uint256 _auctionId)
         public
         view
         override
         returns(uint256)
     {
-        return investorPirsPercentagePerImage[_tokenAddress][_tokenId];
+        AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
+
+        (,,address _tokenAddress, uint256 _tokenId,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
+
+        return investorPirsRatePerImage[_tokenAddress][_tokenId];
     }
 
-    function getCreatorPirsPercentage(address _tokenAddress)
+    function getCreatorPirsRate(uint256 _auctionId)
         public
         view
         override
         returns(uint256) 
     {
-        return creatorPirsPercentagePerCollection[_tokenAddress];
+        AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
+
+        (,,address _tokenAddress,,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
+
+        return creatorPirsRatePerCollection[_tokenAddress];
     }
     
-    function getMaxCreatorPirsPercentage(address _tokenAddress)
+    function getMaxCreatorPirsRate(address _tokenAddress)
         public 
         view 
         returns(uint256) 
     {
-        return maxCreatorPirsPercentagePerCollection[_tokenAddress];
+        return maxCreatorPirsRatePerCollection[_tokenAddress];
     }
     
-    function getMaxInvestorPirsPercentage()
+    function getMaxInvestorPirsRate()
         public 
         view 
         returns(uint256) 
     {
-        return maxInvestorPirsPercentage;
+        return maxInvestorPirsRate;
     }
     
-    function getMaxBidbackPercentage()
+    function getMaxBidbackRate()
         public 
         view
         returns(uint256) 
     {
-        return maxBidbackPercentage;
+        return maxBidbackRate;
     }
-    
+
+    function getRewardsRate(
+        uint256 _auctionId
+    ) external view override returns (uint256) {
+        return getBidbackRate(_auctionId) +
+        getInvestorPirsRate(_auctionId) +
+        getCreatorPirsRate(_auctionId);
+    }
 }

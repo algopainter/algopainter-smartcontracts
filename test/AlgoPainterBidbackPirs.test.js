@@ -17,7 +17,7 @@ contract('AlgoPainterBidBackPirs', accounts => {
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
     auctionSystemManager = await AuctionSystemManagerMOCK.new();
 
-    await auction.setup(accounts[9], 1000, 250, [algop.address], auctionSystemManager.address);
+    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address], auctionSystemManager.address);
 
     await bidbackPirs.setAuctionSystemAddress(auction.address);
 
@@ -34,57 +34,53 @@ contract('AlgoPainterBidBackPirs', accounts => {
   });
 
   it('Should set max creator pirs and a creator pirs for a collection', async () => {
+    await bidbackPirs.setMaxCreatorPirsRate(gwei.address, 30);
 
-    try {
-      await bidbackPirs.setMaxCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 30);
-    } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setMaxCreatorPirsPercentage error');
-    }
+    const maxPirs = await bidbackPirs.getMaxCreatorPirsRate(gwei.address);
+    expect(maxPirs.toString()).to.be.equal('30', 'fail to check maxCreatorPirsRate');
 
-    expect((await bidbackPirs.getMaxCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154')).toString()).to.be.equal('30', 'fail to check maxCreatorPirsPercentage');
+    const unsettedPirs = await bidbackPirs.getCreatorPirsRate(0);
+    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorPirsRate');
 
-    try {
-      await bidbackPirs.setCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 25);
-    } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setCreatorPirsPercentage error');
-    }
+    await bidbackPirs.setCreatorPirsRate(gwei.address, 15);
 
-    expect((await bidbackPirs.getCreatorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154')).toString()).to.be.equal('25', 'fail to check creatorPirsPercentage');
-
+    const updatedPirs = await bidbackPirs.getCreatorPirsRate(0);
+    expect(updatedPirs.toString()).to.be.equal('15', 'fail to check creatorPirsRate');
   });
-
 
   it('Should set max investor pirs for all collections and a investor pirs for a specific image in a collection', async () => {
+    await bidbackPirs.setMaxInvestorPirsRate(30);
 
-    try {
-      await bidbackPirs.setMaxInvestorPirsPercentage(30);
-    } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setMaxInvestorPirsPercentage error');
-    }
+    const maxPirs = await bidbackPirs.getMaxInvestorPirsRate();
+    expect(maxPirs.toString()).to.be.equal('30', 'fail to check maxInvestorPirsRate');
 
-    expect((await bidbackPirs.getMaxInvestorPirsPercentage()).toString()).to.be.equal('30', 'fail to check maxInvestorPirsPercentage');
+    const unsettedPirs = await bidbackPirs.getInvestorPirsRate(0);
+    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorPirsRate');
 
-    try {
-      await bidbackPirs.setInvestorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 0, 25);
-    } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterBidbackPirs setInvestorPirsPercentage error');
-    }
+    await bidbackPirs.setInvestorPirsRate(gwei.address, 1, 25);
 
-    expect((await bidbackPirs.getInvestorPirsPercentage('0xC250988ec44b90F81214C5030c947026b2A9b154', 0)).toString()).to.be.equal('25', 'fail to check creatorPirsPercentage');
-
+    const updatedPirs = await bidbackPirs.getInvestorPirsRate(0);
+    expect(updatedPirs.toString()).to.be.equal('25', 'fail to check creatorPirsRate');
   });
-
 
   it('Should set max bidback for all auctions and a bidback for a specific auction', async () => {
     const auctionId = await auction.getAuctionId(gwei.address, 1);
 
-    await bidbackPirs.setMaxBidbackPercentage(10);
+    await bidbackPirs.setMaxBidbackRate(10);
 
-    expect((await bidbackPirs.getMaxBidbackPercentage()).toString()).to.be.equal('10', 'fail to check maxBidbackPercentage');
+    const maxBidback = await bidbackPirs.getMaxBidbackRate();
+    expect(maxBidback.toString()).to.be.equal('10', 'fail to check maxBidbackRate');
   
-    await bidbackPirs.setBidbackPercentage(parseInt(auctionId.toString()), 10);
+    await bidbackPirs.setBidbackRate(parseInt(auctionId.toString()), 10);
 
-    expect((await bidbackPirs.getBidbackPercentage(auctionId)).toString()).to.be.equal('10', 'fail to check bidbackPercentage');
+    const bidback = await bidbackPirs.getBidbackRate(auctionId);
+    expect(bidback.toString()).to.be.equal('10', 'fail to check bidbackRate');
   });
 
+  it('Should return the sum of all rewards', async () => {
+    const auctionId = await auction.getAuctionId(gwei.address, 1);
+
+    const rewardsRate = await bidbackPirs.getRewardsRate(auctionId);
+    expect(rewardsRate.toString()).to.be.equal('50', 'fail to check rewards rate');
+  });
 });

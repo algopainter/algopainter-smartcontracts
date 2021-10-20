@@ -4,7 +4,7 @@ const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
 const AlgoPainterRewardsSystem = artifacts.require('AlgoPainterRewardsSystem');
 const sleep = require('sleep');
 
-contract.only('AlgoPainterRewardsSystem', (accounts) => {
+contract('AlgoPainterRewardsSystem', (accounts) => {
   const AUCTION_FEE_ACCOUNT = accounts[9];
   const GWEI_OWNER_ACCOUNT = accounts[8];
 
