@@ -2,9 +2,11 @@ const AlgoPainterToken = artifacts.require('AlgoPainterToken');
 const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
 const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
 const AlgoPainterRewardsSystem = artifacts.require('AlgoPainterRewardsSystem');
+const AuctionRewardsRatesProviderMOCK = artifacts.require('AuctionRewardsRatesProviderMOCK');
+
 const sleep = require('sleep');
 
-contract('AlgoPainterRewardsSystem', (accounts) => {
+contract.only('AlgoPainterRewardsSystem', (accounts) => {
   const AUCTION_FEE_ACCOUNT = accounts[9];
   const GWEI_OWNER_ACCOUNT = accounts[8];
 
@@ -12,12 +14,14 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
   let gwei;
   let auctionSystem;
   let rewardsSystemManager;
+  let ratesProviderMOCK;
 
   it('Setup auction and rewards system', async () => {
     algopToken = await AlgoPainterToken.new('ALGOP', 'ALGOP');
     gwei = await AlgoPainterGweiItem.new(algopToken.address, GWEI_OWNER_ACCOUNT);
     auctionSystem = await AlgoPainterAuctionSystem.new();
     rewardsSystemManager = await AlgoPainterRewardsSystem.new();
+    ratesProviderMOCK = await AuctionRewardsRatesProviderMOCK.new();
 
     await algopToken.approve(gwei.address, web3.utils.toWei('100000', 'ether'));
     await gwei.mint(1, 'new text', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI');
@@ -27,6 +31,8 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
 
     await rewardsSystemManager.setRewardsTokenAddress(algopToken.address);
     await rewardsSystemManager.setAuctionSystemAddress(auctionSystem.address);
+    await rewardsSystemManager.setRewardsRatesProviderAddress(ratesProviderMOCK.address);
+    await rewardsSystemManager.setRewardsTotalRatesProviderAddress(ratesProviderMOCK.address);
 
     const baseAmount = web3.utils.toWei('1000000', 'ether');
 

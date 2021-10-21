@@ -24,8 +24,14 @@ contract('AlgoPainterAuctionSystem', accounts => {
 
     const amount = web3.utils.toWei('300', 'ether');
 
+    const balance = await algop.balanceOf(accounts[0]);
+    expect(balance.toString()).to.be.equal('100000000000000000000000000');
+
     await algop.approve(gwei.address, amount);
     await gwei.mint(1, 'new text', false, 0, 2, amount, 'URI');
+
+    const balanceUpdated = await algop.balanceOf(accounts[0]);
+    expect(balanceUpdated.toString()).to.be.equal('99999700000000000000000000');
   });
 
   it('should setup auction system', async () => {
@@ -50,14 +56,14 @@ contract('AlgoPainterAuctionSystem', accounts => {
     const expirationTime = (now + 20).toString();
 
     try {
-      await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address, 10000);
+      await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address);
       throw {};
     } catch (e) {
       expect(e.reason).to.be.equal('AlgoPainterAuctionSystem:ERC721_NOT_APPROVED');
     }
 
     await gwei.setApprovalForAll(auction.address, true);
-    await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address, 10000);
+    await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address);
 
     const auctionId = await auction.getAuctionId(gwei.address, 1);
 
@@ -69,7 +75,6 @@ contract('AlgoPainterAuctionSystem', accounts => {
     expect(auctionInfo.minimumAmount.toString()).to.be.equal(web3.utils.toWei('100', 'ether'), 'fail to check minimumAmount');
     expect(auctionInfo.auctionEndTime.toString()).to.be.equal(expirationTime, 'fail to check auctionEndTime');
     expect(auctionInfo.tokenPriceAddress).to.be.equal(algop.address, 'fail to check tokenPriceAddress');
-    expect(auctionInfo.bidBackFee.toString()).to.be.equal('10000', 'fail to check bidBackFee');
   });
 
   it('should send bids', async () => {
@@ -78,8 +83,8 @@ contract('AlgoPainterAuctionSystem', accounts => {
     await algop.transfer(accounts[2], transferAmount);
     await algop.transfer(accounts[3], transferAmount);
 
-    await algop.approve(auction.address, transferAmount, {from: accounts[1]});
-    await algop.approve(auction.address, transferAmount, {from: accounts[2]});
+    await algop.approve(auction.address, transferAmount, { from: accounts[1] });
+    await algop.approve(auction.address, transferAmount, { from: accounts[2] });
     await algop.approve(auction.address, transferAmount, { from: accounts[3] });
 
     const auctionId = await auction.getAuctionId(gwei.address, 1);
@@ -101,8 +106,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     expect(feeAddressBalance.toString()).to.be.equal('2500000000000000000', 'fail to check feeAddressBalance #1');
     expect(auctionBalance.toString()).to.be.equal('97500000000000000000', 'fail to check auctionBalance #1');
 
-    try
-    {
+    try {
       await auction.bid(auctionId, web3.utils.toWei('90', 'ether'), { from: accounts[2] });
       throw {};
     } catch (e) {
@@ -142,13 +146,18 @@ contract('AlgoPainterAuctionSystem', accounts => {
     console.log('Waiting 20s to finish the auction');
     sleep.sleep(20);
 
+    const previousRewardsSystemBalance = await algop.balanceOf(auctionSystemManager.address);
+    expect(previousRewardsSystemBalance.toString()).to.be.equal('0', 'fail to check rewardsSystemBalance');
+
     await auction.endAuction(auctionId);
 
     const feeAddressBalance = await algop.balanceOf(accounts[9]);
     const auctionBalance = await algop.balanceOf(auction.address);
+    const rewardsSystemBalance = await algop.balanceOf(auctionSystemManager.address);
 
     expect(feeAddressBalance.toString()).to.be.equal('17662500000000000000', 'fail to check feeAddressBalance');
     expect(auctionBalance.toString()).to.be.equal('193447500000000000000', 'fail to check auctionBalance');
+    expect(rewardsSystemBalance.toString()).to.be.equal('9099000000000000000', 'fail to check rewardsSystemBalance');
 
     const auctionInfo = await auction.getAuctionInfo(auctionId);
 

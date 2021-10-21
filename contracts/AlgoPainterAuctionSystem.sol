@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155Holder.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./AlgoPainterAuctionSystemAccessControl.sol";
+import "./IAuctionRewardsTotalRatesProvider.sol";
 import "./IAuctionSystemManager.sol";
 
 contract AlgoPainterAuctionSystem is
@@ -23,6 +24,7 @@ contract AlgoPainterAuctionSystem is
     bytes private DEFAULT_MESSAGE;
 
     IAuctionSystemManager private auctionSystemManager;
+    IAuctionRewardsTotalRatesProvider rewardsTotalRatesProviderAddress;
 
     mapping(uint256 => mapping(address => uint256)) private pendingReturns;
 
@@ -36,7 +38,6 @@ contract AlgoPainterAuctionSystem is
         uint256 minimumAmount;
         uint256 auctionEndTime;
         IERC20 tokenPriceAddress;
-        uint256 bidBackFee;
         bool ended;
         address highestBidder;
         uint256 highestBid;
@@ -55,8 +56,7 @@ contract AlgoPainterAuctionSystem is
         uint256 tokenId,
         uint256 minimumAmount,
         uint256 auctionEndTime,
-        IERC20 tokenPriceAddress,
-        uint256 bidBackFee
+        IERC20 tokenPriceAddress
     );
 
     event HighestBidIncreased(
@@ -103,7 +103,8 @@ contract AlgoPainterAuctionSystem is
         uint256 auctionFeeRate,
         uint256 bidFeeRate,
         IERC20[] allowedTokens,
-        IAuctionSystemManager auctionSystemManager
+        IAuctionSystemManager auctionSystemManager,
+        IAuctionRewardsTotalRatesProvider rewardsTotalRatesProviderAddress
     );
 
     function getNow() public view returns (uint256) {
@@ -134,18 +135,24 @@ contract AlgoPainterAuctionSystem is
         return auctionSystemManager;
     }
 
+    function getRewardsTotalRatesProviderAddress() public view returns (IAuctionRewardsTotalRatesProvider) {
+        return rewardsTotalRatesProviderAddress;
+    }
+
     function setup(
         address _addressFee,
         address _rewardsSystemAddress,
         uint256 _auctionFeeRate,
         uint256 _bidFeeRate,
         IERC20[] memory _allowedTokens,
-        IAuctionSystemManager _auctionSystemManager
+        IAuctionSystemManager _auctionSystemManager,
+        IAuctionRewardsTotalRatesProvider _rewardsTotalRatesProviderAddress
     ) public onlyRole(CONFIGURATOR_ROLE) {
         require(
             _auctionFeeRate <= ONE_HUNDRED_PERCENT,
             "AlgoPainterAuctionSystem:INVALID_AUCTION_FEE"
         );
+
         require(
             _bidFeeRate <= ONE_HUNDRED_PERCENT,
             "AlgoPainterAuctionSystem:INVALID_BID_FEE"
@@ -173,7 +180,8 @@ contract AlgoPainterAuctionSystem is
             _auctionFeeRate,
             _bidFeeRate,
             _allowedTokens,
-            _auctionSystemManager
+            _auctionSystemManager,
+            _rewardsTotalRatesProviderAddress
         );
     }
 
@@ -189,7 +197,8 @@ contract AlgoPainterAuctionSystem is
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
-            auctionSystemManager
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
     }
 
@@ -215,7 +224,8 @@ contract AlgoPainterAuctionSystem is
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
-            auctionSystemManager
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
     }
 
@@ -232,7 +242,8 @@ contract AlgoPainterAuctionSystem is
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
-            auctionSystemManager
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
     }
 
@@ -248,8 +259,16 @@ contract AlgoPainterAuctionSystem is
             auctionFeeRate,
             bidFeeRate,
             allowedTokens,
-            auctionSystemManager
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
+    }
+
+    function setRewardsTotalRatesProviderAddress(IAuctionRewardsTotalRatesProvider _rewardsTotalRatesProviderAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        rewardsTotalRatesProviderAddress = _rewardsTotalRatesProviderAddress;
     }
 
     function createAuction(
@@ -258,8 +277,7 @@ contract AlgoPainterAuctionSystem is
         uint256 _tokenId,
         uint256 _minimumAmount,
         uint256 _auctionEndTime,
-        IERC20 _tokenPriceAddress,
-        uint256 _bidBackFee
+        IERC20 _tokenPriceAddress
     ) public returns (uint256) {
         if (_tokenType == TokenType.ERC721) {
             IERC721 token = IERC721(_tokenAddress);
@@ -295,11 +313,6 @@ contract AlgoPainterAuctionSystem is
             "AlgoPainterAuctionSystem:INVALID_TOKEN_PRICE_ADDRESS"
         );
 
-        require(
-            _bidBackFee <= ONE_HUNDRED_PERCENT,
-            "AlgoPainterAuctionSystem:INVALID_BID_BACK_PERCENTUAL"
-        );
-
         auctionInfo.push(
             AuctionInfo(
                 msg.sender,
@@ -309,7 +322,6 @@ contract AlgoPainterAuctionSystem is
                 _minimumAmount,
                 _auctionEndTime,
                 _tokenPriceAddress,
-                _bidBackFee,
                 false,
                 address(0),
                 0
@@ -330,8 +342,7 @@ contract AlgoPainterAuctionSystem is
             _tokenId,
             _minimumAmount,
             _auctionEndTime,
-            _tokenPriceAddress,
-            _bidBackFee
+            _tokenPriceAddress
         );
 
         return auctions[_tokenAddress][_tokenId];
@@ -360,7 +371,6 @@ contract AlgoPainterAuctionSystem is
             uint256 minimumAmount,
             uint256 auctionEndTime,
             IERC20 tokenPriceAddress,
-            uint256 bidBackFee,
             bool ended,
             address highestBidder,
             uint256 highestBid
@@ -375,7 +385,6 @@ contract AlgoPainterAuctionSystem is
         minimumAmount = auctionInfo.minimumAmount;
         auctionEndTime = auctionInfo.auctionEndTime;
         tokenPriceAddress = auctionInfo.tokenPriceAddress;
-        bidBackFee = auctionInfo.bidBackFee;
         ended = auctionInfo.ended;
         highestBidder = auctionInfo.highestBidder;
         highestBid = auctionInfo.highestBid;
@@ -523,14 +532,15 @@ contract AlgoPainterAuctionSystem is
 
         address winner = auctionInfo.highestBidder;
         uint256 bidAmount = auctionInfo.highestBid;
+
         (uint256 netAmount, uint256 feeAmount) =
             getAuctionAmountInfo(bidAmount);
 
-        (uint256 finalNetAmount, uint256 bidbackAmount) =
-            getFeeAndNetAmount(netAmount, auctionInfo.bidBackFee);
+        (uint256 finalNetAmount, uint256 rewardsAmount) =
+            getFeeAndNetAmount(netAmount, 1000);
 
         require(
-            tokenPrice.transfer(rewardsSystemAddress, bidbackAmount),
+            tokenPrice.transfer(rewardsSystemAddress, rewardsAmount),
             "AlgoPainterAuctionSystem:FAIL_TO_PAY_REWARDS_SYSTEM"
         );
 
@@ -565,7 +575,7 @@ contract AlgoPainterAuctionSystem is
             winner,
             bidAmount,
             feeAmount,
-            bidbackAmount,
+            rewardsAmount,
             netAmount
         );
 

@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./AlgoPainterRewardsSystemAccessControl.sol";
 import "./AlgoPainterAuctionSystem.sol";
 import "./IAuctionSystemManager.sol";
+import "./IAuctionRewardsRatesProvider.sol";
+import "./IAuctionRewardsTotalRatesProvider.sol";
 
 contract AlgoPainterRewardsSystem is 
     AlgoPainterRewardsSystemAccessControl,
@@ -19,22 +21,48 @@ contract AlgoPainterRewardsSystem is
     address allowedSender;
     IERC20 rewardsTokenAddress;
     AlgoPainterAuctionSystem auctionSystemAddress;
+    IAuctionRewardsRatesProvider rewardsRatesProviderAddress;
+    IAuctionRewardsTotalRatesProvider rewardsTotalRatesProviderAddress;
 
     mapping(uint256 => mapping(address => bool)) private auctionUsersWithBids;
 
+    mapping(uint256 => uint256) private rewardsAmountMapping;
+
     mapping(uint256 => uint256) private totalBidbackStakes;
-    mapping(uint256 => uint256) private bidbackAmountMapping;
     mapping(uint256 => address[]) private bidbackUsers;
     mapping(uint256 => mapping(address => bool)) private bidbackUsersMapping;
     mapping(uint256 => mapping(address => uint256)) private bidbackStakes;
     mapping(uint256 => mapping(address => uint256)) private bidbackPercentages;
 
     mapping(uint256 => uint256) private totalPirsStakes;
-    mapping(uint256 => uint256) private pirsAmountMapping;
     mapping(uint256 => address[]) private pirsUsers;
     mapping(uint256 => mapping(address => bool)) private pirsUsersMapping;
     mapping(uint256 => mapping(address => uint256)) private pirsStakes;
     mapping(uint256 => mapping(address => uint256)) private pirsPercentages;
+
+    event BidbackStaked(
+        uint256 auctionId,
+        address account,
+        uint256 stakeAmount
+    );
+
+    event BidbackUnstaked(
+        uint256 auctionId,
+        address account,
+        uint256 stakeAmount
+    );
+
+    event PIRSStaked(
+        uint256 auctionId,
+        address account,
+        uint256 stakeAmount
+    );
+
+    event PIRSUnstaked(
+        uint256 auctionId,
+        address account,
+        uint256 stakeAmount
+    );
 
     function setAllowedSender(address _allowedSender)
         public
@@ -67,6 +95,28 @@ contract AlgoPainterRewardsSystem is
 
     function getAuctionSystemAddress() public view returns (AlgoPainterAuctionSystem) {
         return auctionSystemAddress;
+    }
+
+    function setRewardsRatesProviderAddress(IAuctionRewardsRatesProvider _rewardsRatesProviderAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        rewardsRatesProviderAddress = _rewardsRatesProviderAddress;
+    }
+
+    function getRewardsRatesProviderAddress() public view returns (IAuctionRewardsRatesProvider) {
+        return rewardsRatesProviderAddress;
+    }
+
+    function setRewardsTotalRatesProviderAddress(IAuctionRewardsTotalRatesProvider _rewardsTotalRatesProviderAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        rewardsTotalRatesProviderAddress = _rewardsTotalRatesProviderAddress;
+    }
+
+    function getRewardsTotalRatesProviderAddress() public view returns (IAuctionRewardsTotalRatesProvider) {
+        return rewardsTotalRatesProviderAddress;
     }
 
     function getTotalBidbackStakes(
@@ -138,7 +188,7 @@ contract AlgoPainterRewardsSystem is
         address winner,
         uint256 bidAmount,
         uint256 feeAmount,
-        uint256 bidbackAmount,
+        uint256 rewardsAmount,
         uint256 netAmount
     ) override external {
         require(
@@ -146,7 +196,7 @@ contract AlgoPainterRewardsSystem is
             "AlgoPainterRewardsSystem: INVALID_SENDER"
         );
 
-        bidbackAmountMapping[auctionId] = bidbackAmount;
+        rewardsAmountMapping[auctionId] = rewardsAmount;
     }
 
     function onAuctionCancelled(
@@ -158,7 +208,7 @@ contract AlgoPainterRewardsSystem is
     function stakeBidback(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
 
@@ -183,12 +233,18 @@ contract AlgoPainterRewardsSystem is
         }
 
         computeBidbackPercentages(auctionId);
+
+        emit BidbackStaked(
+            auctionId,
+            msg.sender,
+            bidbackStakes[auctionId][msg.sender]
+        );
     }
 
     function unstakeBidback(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
 
@@ -203,12 +259,18 @@ contract AlgoPainterRewardsSystem is
         );
 
         computeBidbackPercentages(auctionId);
+
+        emit BidbackUnstaked(
+            auctionId,
+            msg.sender,
+            bidbackStakes[auctionId][msg.sender]
+        );
     }
 
     function stakePirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
 
@@ -228,12 +290,18 @@ contract AlgoPainterRewardsSystem is
         }
 
         computePirsPercentages(auctionId);
+
+        emit PIRSStaked(
+            auctionId,
+            msg.sender,
+            pirsStakes[auctionId][msg.sender]
+        );
     }
 
     function unstakePirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
 
@@ -248,12 +316,18 @@ contract AlgoPainterRewardsSystem is
         );
 
         computePirsPercentages(auctionId);
+
+        emit PIRSUnstaked(
+            auctionId,
+            msg.sender,
+            pirsStakes[auctionId][msg.sender]
+        );
     }
 
     function withdrawPirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended, "AlgoPainterRewardsSystem: AUCTION_ENDED");
 
@@ -287,14 +361,31 @@ contract AlgoPainterRewardsSystem is
         }
     }
 
+    function getRewardAmount(uint256 auctionId, uint256 rate) internal view returns (uint256) {
+        IAuctionRewardsTotalRatesProvider totalRatesProvider = IAuctionRewardsTotalRatesProvider(rewardsTotalRatesProviderAddress);
+
+        uint256 totalRate = totalRatesProvider.getRewardsRate(auctionId);
+
+        return ONE_HUNDRED_PERCENT
+            .mul(rate)
+            .div(totalRate);
+    }
+
     function claimBidback(uint256 auctionId) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,, IERC20 tokenPriceAddress,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,, IERC20 tokenPriceAddress, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended, "AlgoPainterRewardsSystem: NOT_YET_ENDED");
 
-        uint256 bidbackEarnings = bidbackAmountMapping[auctionId]
+        IAuctionRewardsRatesProvider ratesProvider = IAuctionRewardsRatesProvider(rewardsRatesProviderAddress);
+        uint256 bidbackRate = getRewardAmount(auctionId, ratesProvider.getBidbackRate(auctionId));
+        
+        uint256 bidbackTotalEarnings = rewardsAmountMapping[auctionId]
+            .mul(bidbackRate)
+            .div(ONE_HUNDRED_PERCENT);
+
+        uint256 bidbackEarnings = bidbackTotalEarnings
             .mul(bidbackPercentages[auctionId][msg.sender])
             .div(ONE_HUNDRED_PERCENT);
 
@@ -320,11 +411,18 @@ contract AlgoPainterRewardsSystem is
     function claimPirs(uint256 auctionId) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,, IERC20 tokenPriceAddress,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,,, IERC20 tokenPriceAddress, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
 
         require(ended, "AlgoPainterRewardsSystem: NOT_YET_ENDED");
 
-        uint256 pirsEarnings = pirsAmountMapping[auctionId]
+        IAuctionRewardsRatesProvider ratesProvider = IAuctionRewardsRatesProvider(rewardsRatesProviderAddress);
+        uint256 pirsRate = getRewardAmount(auctionId, ratesProvider.getInvestorPirsRate(auctionId));
+        
+        uint256 pirsTotalEarnings = rewardsAmountMapping[auctionId]
+            .mul(pirsRate)
+            .div(ONE_HUNDRED_PERCENT);
+
+        uint256 pirsEarnings = pirsTotalEarnings
             .mul(pirsPercentages[auctionId][msg.sender])
             .div(ONE_HUNDRED_PERCENT);
 

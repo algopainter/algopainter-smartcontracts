@@ -58,7 +58,7 @@ contract AlgoPainterBidBackPirs is
     {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (address beneficiary,,,,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
+        (address beneficiary,,,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
 
         require(
             msg.sender == beneficiary,
@@ -132,7 +132,7 @@ contract AlgoPainterBidBackPirs is
     {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,address _tokenAddress, uint256 _tokenId,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
+        (,,address _tokenAddress, uint256 _tokenId,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
 
         return investorPirsRatePerImage[_tokenAddress][_tokenId];
     }
@@ -145,7 +145,7 @@ contract AlgoPainterBidBackPirs is
     {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,address _tokenAddress,,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
+        (,,address _tokenAddress,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
 
         return creatorPirsRatePerCollection[_tokenAddress];
     }
