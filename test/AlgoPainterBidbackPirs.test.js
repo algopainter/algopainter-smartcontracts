@@ -17,7 +17,7 @@ contract('AlgoPainterBidBackPirs', accounts => {
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
     auctionSystemManager = await AuctionSystemManagerMOCK.new();
 
-    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address], auctionSystemManager.address);
+    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address], auctionSystemManager.address, bidbackPirs.address);
 
     await bidbackPirs.setAuctionSystemAddress(auction.address);
 
@@ -30,7 +30,7 @@ contract('AlgoPainterBidBackPirs', accounts => {
     const expirationTime = (now + 20).toString();
 
     await gwei.setApprovalForAll(auction.address, true);
-    await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address, 10000);
+    await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address);
   });
 
   it('Should set max creator pirs and a creator pirs for a collection', async () => {
