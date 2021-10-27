@@ -52,6 +52,12 @@ contract AlgoPainterRewardsSystem is
         uint256 stakeAmount
     );
 
+    event BidbackClaimed(
+        uint256 auctionId,
+        address account,
+        uint256 amount
+    );
+
     event PIRSStaked(
         uint256 auctionId,
         address account,
@@ -62,6 +68,12 @@ contract AlgoPainterRewardsSystem is
         uint256 auctionId,
         address account,
         uint256 stakeAmount
+    );
+
+    event PIRSClaimed(
+        uint256 auctionId,
+        address account,
+        uint256 amount
     );
 
     function setAllowedSender(address _allowedSender)
@@ -406,6 +418,12 @@ contract AlgoPainterRewardsSystem is
         );
 
         bidbackStakes[auctionId][msg.sender] = 0;
+
+        emit BidbackClaimed(
+            auctionId,
+            msg.sender,
+            bidbackEarnings
+        );
     }
 
     function claimPirs(uint256 auctionId) external {
@@ -433,6 +451,12 @@ contract AlgoPainterRewardsSystem is
         require(
             pirsToken.transfer(msg.sender, pirsEarnings),
             "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_PIRS"
+        );
+
+        emit PIRSClaimed(
+            auctionId,
+            msg.sender,
+            pirsEarnings
         );
     }
 }
