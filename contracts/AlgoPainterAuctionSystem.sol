@@ -163,6 +163,7 @@ contract AlgoPainterAuctionSystem is
         auctionFeeRate = _auctionFeeRate;
         bidFeeRate = _bidFeeRate;
         auctionSystemManager = _auctionSystemManager;
+        rewardsTotalRatesProviderAddress = _rewardsTotalRatesProviderAddress;
 
         for (uint256 i = 0; i < allowedTokens.length; i++) {
             allowedTokensMapping[allowedTokens[i]] = false;
@@ -504,12 +505,20 @@ contract AlgoPainterAuctionSystem is
         netAmount = _amount.sub(feeAmount);
     }
 
-    function getAuctionAmountInfo(uint256 _amount)
+    function getAuctionAmountInfo(uint256 _auctionId, uint256 _amount)
         public
         view
-        returns (uint256 netAmount, uint256 feeAmount)
+        returns (uint256 netAmount, uint256 feeAmount, uint256 rewardsAmount)
     {
-        (netAmount, feeAmount) = getFeeAndNetAmount(_amount, auctionFeeRate);
+        IAuctionRewardsTotalRatesProvider rewardsTotalRatesProvider = 
+            IAuctionRewardsTotalRatesProvider(rewardsTotalRatesProviderAddress);
+
+        uint256 rewardsRate = rewardsTotalRatesProvider.getRewardsRate(_auctionId);
+
+        feeAmount = _amount.mul(auctionFeeRate).div(ONE_HUNDRED_PERCENT);
+        rewardsAmount = _amount.mul(6000).div(ONE_HUNDRED_PERCENT);
+        
+        netAmount = _amount.sub(feeAmount).sub(rewardsAmount);
     }
 
     function getBidAmountInfo(uint256 _amount)
@@ -518,7 +527,7 @@ contract AlgoPainterAuctionSystem is
         returns (uint256 netAmount, uint256 feeAmount)
     {
         (netAmount, feeAmount) = getFeeAndNetAmount(_amount, bidFeeRate);
-    }
+    } 
 
     function endAuction(uint256 _auctionId) public {
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
@@ -533,11 +542,8 @@ contract AlgoPainterAuctionSystem is
         address winner = auctionInfo.highestBidder;
         uint256 bidAmount = auctionInfo.highestBid;
 
-        (uint256 netAmount, uint256 feeAmount) =
-            getAuctionAmountInfo(bidAmount);
-
-        (uint256 finalNetAmount, uint256 rewardsAmount) =
-            getFeeAndNetAmount(netAmount, 1000);
+        (uint256 netAmount, uint256 feeAmount, uint256 rewardsAmount) =
+            getAuctionAmountInfo(_auctionId, bidAmount);
 
         require(
             tokenPrice.transfer(rewardsSystemAddress, rewardsAmount),
@@ -545,7 +551,7 @@ contract AlgoPainterAuctionSystem is
         );
 
         require(
-            tokenPrice.transfer(auctionInfo.beneficiary, finalNetAmount),
+            tokenPrice.transfer(auctionInfo.beneficiary, netAmount),
             "AlgoPainterAuctionSystem:FAIL_TO_PAY_BENEFICIARY"
         );
 
