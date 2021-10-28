@@ -137,6 +137,14 @@ contract AlgoPainterBidBackPirs is
         return investorPirsRatePerImage[_tokenAddress][_tokenId];
     }
 
+    function getInvestorPirsRatePerImage(address _tokenAddress, uint256 _tokenId)
+        public
+        view
+        returns(uint256)
+    {
+        return investorPirsRatePerImage[_tokenAddress][_tokenId];
+    }
+
     function getCreatorPirsRate(uint256 _auctionId)
         public
         view

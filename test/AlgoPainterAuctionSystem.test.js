@@ -2,6 +2,7 @@ const AlgoPainterToken = artifacts.require('AlgoPainterToken');
 const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
 const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
 const AuctionSystemManagerMOCK = artifacts.require('AuctionSystemManagerMOCK');
+const AuctionRewardsRatesProviderMOCK = artifacts.require('AuctionRewardsRatesProviderMOCK');
 var sleep = require('sleep');
 
 contract('AlgoPainterAuctionSystem', accounts => {
@@ -11,12 +12,14 @@ contract('AlgoPainterAuctionSystem', accounts => {
   let gwei = null;
   let auction = null;
   let auctionSystemManager = null;
+  let ratesProviderMOCK = null;
 
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
     busd = await AlgoPainterToken.new("BUSD", "BUSD");
     eth = await AlgoPainterToken.new("ETH", "ETH");
     auctionSystemManager = await AuctionSystemManagerMOCK.new();
+    ratesProviderMOCK = await AuctionRewardsRatesProviderMOCK.new();
 
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
 
@@ -35,7 +38,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
   });
 
   it('should setup auction system', async () => {
-    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address, busd.address, eth.address], auctionSystemManager.address);
+    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address, busd.address, eth.address], auctionSystemManager.address, ratesProviderMOCK.address);
 
     expect(await auction.getAddressFee()).to.be.equal(accounts[9]);
     expect((await auction.getAuctionFeeRate()).toString()).to.be.equal('1000');
@@ -157,7 +160,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
 
     expect(feeAddressBalance.toString()).to.be.equal('17662500000000000000', 'fail to check feeAddressBalance');
     expect(auctionBalance.toString()).to.be.equal('193447500000000000000', 'fail to check auctionBalance');
-    expect(rewardsSystemBalance.toString()).to.be.equal('9099000000000000000', 'fail to check rewardsSystemBalance');
+    expect(rewardsSystemBalance.toString()).to.be.equal('60660000000000000000', 'fail to check rewardsSystemBalance');
 
     const auctionInfo = await auction.getAuctionInfo(auctionId);
 
