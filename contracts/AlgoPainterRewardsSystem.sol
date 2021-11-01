@@ -357,9 +357,13 @@ contract AlgoPainterRewardsSystem is
         for (uint256 i = 0; i < bidbackUsers[auctionId].length; i++) {
             address userAddress = bidbackUsers[auctionId][i];
 
-            bidbackPercentages[auctionId][userAddress] = ONE_HUNDRED_PERCENT
-                .mul(bidbackStakes[auctionId][userAddress])
-                .div(totalBidbackStakes[auctionId]);
+            if (totalBidbackStakes[auctionId] == 0) {
+                bidbackPercentages[auctionId][userAddress] = 0;
+            } else {
+                bidbackPercentages[auctionId][userAddress] = ONE_HUNDRED_PERCENT
+                    .mul(bidbackStakes[auctionId][userAddress])
+                    .div(totalBidbackStakes[auctionId]);
+            }
         }
     }
 
@@ -367,9 +371,13 @@ contract AlgoPainterRewardsSystem is
         for (uint256 i = 0; i < pirsUsers[auctionId].length; i++) {
             address userAddress = pirsUsers[auctionId][i];
 
-            pirsPercentages[auctionId][userAddress] = ONE_HUNDRED_PERCENT
-                .mul(pirsStakes[auctionId][userAddress])
-                .div(totalPirsStakes[auctionId]);
+            if (totalPirsStakes[auctionId] == 0) {
+                pirsPercentages[auctionId][userAddress] = 0;
+            } else {
+                pirsPercentages[auctionId][userAddress] = ONE_HUNDRED_PERCENT
+                    .mul(pirsStakes[auctionId][userAddress])
+                    .div(totalPirsStakes[auctionId]);
+            }
         }
     }
 
@@ -378,12 +386,17 @@ contract AlgoPainterRewardsSystem is
 
         uint256 totalRate = totalRatesProvider.getRewardsRate(auctionId);
 
-        return ONE_HUNDRED_PERCENT
+        return totalRate == 0 ? 0 : ONE_HUNDRED_PERCENT
             .mul(rate)
             .div(totalRate);
     }
 
     function claimBidback(uint256 auctionId) external {
+        require(
+            bidbackPercentages[auctionId][msg.sender] > 0,
+            "AlgoPainterRewardsSystem:NOTHING_TO_CLAIM"
+        );
+
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
         (,,,,,, IERC20 tokenPriceAddress, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
@@ -427,6 +440,11 @@ contract AlgoPainterRewardsSystem is
     }
 
     function claimPirs(uint256 auctionId) external {
+        require(
+            pirsPercentages[auctionId][msg.sender] > 0,
+            "AlgoPainterRewardsSystem:NOTHING_TO_CLAIM"
+        );
+
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
         (,,,,,, IERC20 tokenPriceAddress, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);

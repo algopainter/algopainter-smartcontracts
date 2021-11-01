@@ -11,6 +11,22 @@ contract AlgoPainterBidBackPirs is
     IAuctionRewardsTotalRatesProvider,
     AlgoPainterBidBackPirsAccessControl
 {
+    event BidbackUpdated(
+        uint256 _auctionId,
+        uint256 _bidbackRate
+    );
+
+    event InvestorPirsUpdated(
+        address _tokenAddress,
+        uint256 _tokenId,
+        uint256 _investorPirsRate
+    );
+
+    event CreatorPirsUpdated(
+        address _tokenAddress,
+        uint256 _creatorPirsRate
+    );
+
     AlgoPainterAuctionSystem auctionSystemAddress;
 
     mapping(uint256 => uint256) bidbackRatePerAuction;
@@ -77,6 +93,11 @@ contract AlgoPainterBidBackPirs is
         
         bidbackRatePerAuction[_auctionId] = _bidbackRate;
         isBidbackSet[_auctionId] = true;
+
+        emit BidbackUpdated(
+            _auctionId,
+            _bidbackRate
+        );
     }
     
     function setInvestorPirsRate(address _tokenAddress, uint256 _tokenId, uint256 _investorPirsRate)
@@ -95,6 +116,12 @@ contract AlgoPainterBidBackPirs is
 
         investorPirsRatePerImage[_tokenAddress][_tokenId] = _investorPirsRate;
         isInvestorPirsSet[_tokenAddress][_tokenId] = true;
+
+        emit InvestorPirsUpdated(
+            _tokenAddress,
+            _tokenId,
+            _investorPirsRate
+        );
     }
     
     function setCreatorPirsRate(address _tokenAddress, uint256 _creatorPirsRate)
@@ -113,6 +140,11 @@ contract AlgoPainterBidBackPirs is
 
         creatorPirsRatePerCollection[_tokenAddress] = _creatorPirsRate;
         isCreatorPirsSet[_tokenAddress] = true;
+
+        emit CreatorPirsUpdated(
+            _tokenAddress,
+            _creatorPirsRate
+        );
     }
     
     function getBidbackRate(uint256 _auctionId) 
