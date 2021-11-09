@@ -107,7 +107,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     auctionBalance = await algop.balanceOf(auction.address);
 
     expect(feeAddressBalance.toString()).to.be.equal('2500000000000000000', 'fail to check feeAddressBalance #1');
-    expect(auctionBalance.toString()).to.be.equal('97500000000000000000', 'fail to check auctionBalance #1');
+    expect(auctionBalance.toString()).to.be.equal('100000000000000000000', 'fail to check auctionBalance #1');
 
     try {
       await auction.bid(auctionId, web3.utils.toWei('90', 'ether'), { from: accounts[2] });
@@ -121,7 +121,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     auctionBalance = await algop.balanceOf(auction.address);
 
     expect(feeAddressBalance.toString()).to.be.equal('5025000000000000000', 'fail to check feeAddressBalance #2');
-    expect(auctionBalance.toString()).to.be.equal('195975000000000000000', 'fail to check auctionBalance #2');
+    expect(auctionBalance.toString()).to.be.equal('201000000000000000000', 'fail to check auctionBalance #2');
 
     await auction.bid(auctionId, web3.utils.toWei('101.1', 'ether'), { from: accounts[3] });
 
@@ -133,7 +133,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     auctionBalance = await algop.balanceOf(auction.address);
 
     expect(feeAddressBalance.toString()).to.be.equal('7552500000000000000', 'fail to check feeAddressBalance #3');
-    expect(auctionBalance.toString()).to.be.equal('294547500000000000000', 'fail to check auctionBalance #3');
+    expect(auctionBalance.toString()).to.be.equal('302100000000000000000', 'fail to check auctionBalance #3');
   });
 
   it('should end an auction', async () => {
@@ -159,7 +159,7 @@ contract('AlgoPainterAuctionSystem', accounts => {
     const rewardsSystemBalance = await algop.balanceOf(auctionSystemManager.address);
 
     expect(feeAddressBalance.toString()).to.be.equal('17662500000000000000', 'fail to check feeAddressBalance');
-    expect(auctionBalance.toString()).to.be.equal('193447500000000000000', 'fail to check auctionBalance');
+    expect(auctionBalance.toString()).to.be.equal('201000000000000000000', 'fail to check auctionBalance');
     expect(rewardsSystemBalance.toString()).to.be.equal('60660000000000000000', 'fail to check rewardsSystemBalance');
 
     const auctionInfo = await auction.getAuctionInfo(auctionId);
@@ -176,9 +176,9 @@ contract('AlgoPainterAuctionSystem', accounts => {
     let account2Balance = await algop.balanceOf(accounts[2]);
     let account3Balance = await algop.balanceOf(accounts[3]);
 
-    expect(account1Balance.toString()).to.be.equal('900000000000000000000', 'fail to check account1Balance');
-    expect(account2Balance.toString()).to.be.equal('899000000000000000000', 'fail to check account2Balance');
-    expect(account3Balance.toString()).to.be.equal('898900000000000000000', 'fail to check account3Balance');
+    expect(account1Balance.toString()).to.be.equal('897500000000000000000', 'fail to check account1Balance');
+    expect(account2Balance.toString()).to.be.equal('896475000000000000000', 'fail to check account2Balance');
+    expect(account3Balance.toString()).to.be.equal('896372500000000000000', 'fail to check account3Balance');
 
     await auction.withdraw(auctionId, { from: accounts[1] });
     await auction.withdraw(auctionId, { from: accounts[2] });
@@ -196,6 +196,6 @@ contract('AlgoPainterAuctionSystem', accounts => {
 
     expect(account1Balance.toString()).to.be.equal('997500000000000000000', 'fail to check account1Balance');
     expect(account2Balance.toString()).to.be.equal('997475000000000000000', 'fail to check account2Balance');
-    expect(account3Balance.toString()).to.be.equal('898900000000000000000', 'fail to check account3Balance');
+    expect(account3Balance.toString()).to.be.equal('896372500000000000000', 'fail to check account3Balance');
   });
 });

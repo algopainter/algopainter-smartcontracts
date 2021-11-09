@@ -411,10 +411,11 @@ contract AlgoPainterAuctionSystem is
 
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
-        (uint256 netAmount, uint256 feeAmount) = getBidAmountInfo(_amount);
+        (, uint256 feeAmount) = getBidAmountInfo(_amount);
+        uint256 totalAmount = _amount.add(feeAmount);
 
         require(
-            tokenPrice.transferFrom(msg.sender, address(this), _amount),
+            tokenPrice.transferFrom(msg.sender, address(this), totalAmount),
             "AlgoPainterAuctionSystem:FAIL_TO_TRANSFER_BID_AMOUNT"
         );
 
@@ -424,12 +425,10 @@ contract AlgoPainterAuctionSystem is
         );
 
         if (auctionInfo.highestBid != 0) {
-            (uint256 returnsNetAmount, uint256 returnsFeeAmount) = getBidAmountInfo(auctionInfo.highestBid);
-
             pendingReturns[_auctionId][
                 auctionInfo.highestBidder
             ] = pendingReturns[_auctionId][auctionInfo.highestBidder].add(
-                returnsNetAmount
+                auctionInfo.highestBid
             );
 
             emit PendingReturnsIncreased(
@@ -445,17 +444,17 @@ contract AlgoPainterAuctionSystem is
         auctionSystemManager.onBid(
             _auctionId,
             msg.sender,
-            _amount,
+            totalAmount,
             feeAmount,
-            netAmount
+            _amount
         );
 
         emit HighestBidIncreased(
             _auctionId,
             msg.sender,
-            _amount,
+            totalAmount,
             feeAmount,
-            netAmount
+            _amount
         );
     }
 
