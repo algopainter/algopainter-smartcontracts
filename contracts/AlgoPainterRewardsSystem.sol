@@ -24,6 +24,7 @@ contract AlgoPainterRewardsSystem is
     IAuctionRewardsRatesProvider rewardsRatesProviderAddress;
     IAuctionRewardsTotalRatesProvider rewardsTotalRatesProviderAddress;
 
+    mapping(address => mapping(uint256 => mapping(address => bool))) private oldOwnersUsersMapping;
     mapping(uint256 => mapping(address => bool)) private auctionUsersWithBids;
 
     mapping(uint256 => uint256) private rewardsAmountMapping;
@@ -208,6 +209,12 @@ contract AlgoPainterRewardsSystem is
             "AlgoPainterRewardsSystem: INVALID_SENDER"
         );
 
+        AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
+
+        (address beneficiary,, address tokenAddress, uint256 tokenId,,,,,,) =
+            auctionSystem.getAuctionInfo(auctionId);
+
+        oldOwnersUsersMapping[tokenAddress][tokenId][beneficiary] = true;
         rewardsAmountMapping[auctionId] = rewardsAmount;
     }
 
@@ -282,9 +289,15 @@ contract AlgoPainterRewardsSystem is
     function stakePirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (address beneficiary,, address tokenAddress, uint256 tokenId,,,, bool ended,,) =
+            auctionSystem.getAuctionInfo(auctionId);
 
         require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
+
+        require(
+            oldOwnersUsersMapping[tokenAddress][tokenId][beneficiary],
+            "AlgoPainterRewardsSystem: ACCOUNT_NOT_ELIGIBLE"
+        );
 
         IERC20 rewardsToken = IERC20(rewardsTokenAddress);
 
