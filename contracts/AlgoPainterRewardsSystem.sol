@@ -164,6 +164,10 @@ contract AlgoPainterRewardsSystem is
         return (bidbackUsers[auctionId], amountsList);
     }
 
+    function getNow() public view returns (uint256) {
+        return block.timestamp;
+    }
+
     function onAuctionCreated(
         uint256 auctionId,
         address owner
@@ -227,9 +231,12 @@ contract AlgoPainterRewardsSystem is
     function stakeBidback(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,, uint256 auctionEndTime,,,,) = auctionSystem.getAuctionInfo(auctionId);
 
-        require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
+        require(
+            getNow() <= auctionEndTime,
+            "AlgoPainterRewardsSystem: AUCTION_ENDED"
+        );
 
         require(
             auctionUsersWithBids[auctionId][msg.sender],
@@ -240,7 +247,7 @@ contract AlgoPainterRewardsSystem is
 
         require(
             rewardsToken.transferFrom(msg.sender, address(this), amount),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_STAKE"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_STAKE"
         );
 
         totalBidbackStakes[auctionId] = totalBidbackStakes[auctionId].add(amount);
@@ -263,9 +270,12 @@ contract AlgoPainterRewardsSystem is
     function unstakeBidback(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,, uint256 auctionEndTime,,,,) = auctionSystem.getAuctionInfo(auctionId);
 
-        require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
+        require(
+            getNow() <= auctionEndTime,
+            "AlgoPainterRewardsSystem: AUCTION_ENDED"
+        );
 
         bidbackStakes[auctionId][msg.sender] = bidbackStakes[auctionId][msg.sender].sub(amount);
         totalBidbackStakes[auctionId] = totalBidbackStakes[auctionId].sub(amount);
@@ -274,7 +284,7 @@ contract AlgoPainterRewardsSystem is
 
         require(
             rewardsToken.transfer(msg.sender, amount),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_UNSTAKE"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_UNSTAKE"
         );
 
         computeBidbackPercentages(auctionId);
@@ -289,10 +299,13 @@ contract AlgoPainterRewardsSystem is
     function stakePirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (address beneficiary,, address tokenAddress, uint256 tokenId,,,, bool ended,,) =
+        (address beneficiary,, address tokenAddress, uint256 tokenId,, uint256 auctionEndTime,,,,) =
             auctionSystem.getAuctionInfo(auctionId);
 
-        require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
+        require(
+            getNow() <= auctionEndTime,
+            "AlgoPainterRewardsSystem: AUCTION_ENDED"
+        );
 
         require(
             oldOwnersUsersMapping[tokenAddress][tokenId][beneficiary],
@@ -303,7 +316,7 @@ contract AlgoPainterRewardsSystem is
 
         require(
             rewardsToken.transferFrom(msg.sender, address(this), amount),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_STAKE"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_STAKE"
         );
 
         totalPirsStakes[auctionId] = totalPirsStakes[auctionId].add(amount);
@@ -326,9 +339,12 @@ contract AlgoPainterRewardsSystem is
     function unstakePirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (,,,,,,, bool ended,,) = auctionSystem.getAuctionInfo(auctionId);
+        (,,,,, uint256 auctionEndTime,,,,) = auctionSystem.getAuctionInfo(auctionId);
 
-        require(ended == false, "AlgoPainterRewardsSystem: AUCTION_ENDED");
+        require(
+            getNow() <= auctionEndTime,
+            "AlgoPainterRewardsSystem: AUCTION_ENDED"
+        );
 
         pirsStakes[auctionId][msg.sender] = pirsStakes[auctionId][msg.sender].sub(amount);
         totalPirsStakes[auctionId] = totalPirsStakes[auctionId].sub(amount);
@@ -337,7 +353,7 @@ contract AlgoPainterRewardsSystem is
 
         require(
             rewardsToken.transfer(msg.sender, amount),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_UNSTAKE"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_UNSTAKE"
         );
 
         computePirsPercentages(auctionId);
@@ -362,7 +378,7 @@ contract AlgoPainterRewardsSystem is
 
         require(
             rewardsToken.transfer(msg.sender, amount),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_PIRS_WITHDRAW"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_PIRS_WITHDRAW"
         );
     }
 
@@ -407,7 +423,7 @@ contract AlgoPainterRewardsSystem is
     function claimBidback(uint256 auctionId) external {
         require(
             bidbackPercentages[auctionId][msg.sender] > 0,
-            "AlgoPainterRewardsSystem:NOTHING_TO_CLAIM"
+            "AlgoPainterRewardsSystem: NOTHING_TO_CLAIM"
         );
 
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
@@ -433,14 +449,14 @@ contract AlgoPainterRewardsSystem is
 
         require(
             bidbackToken.transfer(msg.sender, bidbackEarnings),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_BIDBACK"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_BIDBACK"
         );
 
         IERC20 rewardsToken = IERC20(rewardsTokenAddress);
 
         require(
             rewardsToken.transfer(msg.sender, bidbackStakes[auctionId][msg.sender]),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_BIDBACK_WITHDRAW"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_BIDBACK_WITHDRAW"
         );
 
         bidbackStakes[auctionId][msg.sender] = 0;
@@ -455,7 +471,7 @@ contract AlgoPainterRewardsSystem is
     function claimPirs(uint256 auctionId) external {
         require(
             pirsPercentages[auctionId][msg.sender] > 0,
-            "AlgoPainterRewardsSystem:NOTHING_TO_CLAIM"
+            "AlgoPainterRewardsSystem: NOTHING_TO_CLAIM"
         );
 
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
@@ -481,7 +497,7 @@ contract AlgoPainterRewardsSystem is
 
         require(
             pirsToken.transfer(msg.sender, pirsEarnings),
-            "AlgoPainterRewardsSystem:FAIL_TO_TRANSFER_PIRS"
+            "AlgoPainterRewardsSystem: FAIL_TO_TRANSFER_PIRS"
         );
 
         emit PIRSClaimed(

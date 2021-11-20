@@ -515,7 +515,7 @@ contract AlgoPainterAuctionSystem is
         uint256 rewardsRate = rewardsTotalRatesProvider.getRewardsRate(_auctionId);
 
         feeAmount = _amount.mul(auctionFeeRate).div(ONE_HUNDRED_PERCENT);
-        rewardsAmount = _amount.mul(6000).div(ONE_HUNDRED_PERCENT);
+        rewardsAmount = _amount.mul(rewardsRate).div(ONE_HUNDRED_PERCENT);
         
         netAmount = _amount.sub(feeAmount).sub(rewardsAmount);
     }
