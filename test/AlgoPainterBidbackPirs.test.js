@@ -46,6 +46,9 @@ contract('AlgoPainterBidBackPirs', accounts => {
 
     const updatedPirs = await bidbackPirs.getCreatorPirsRate(0);
     expect(updatedPirs.toString()).to.be.equal('15', 'fail to check creatorPirsRate');
+
+    const updatedPirsByAddress = await bidbackPirs.getCreatorPIRSByTokenAddress(gwei.address);
+    expect(updatedPirsByAddress.toString()).to.be.equal('15', 'fail to check creatorPirsRate');
   });
 
   it('Should set max investor pirs for all collections and a investor pirs for a specific image in a collection', async () => {

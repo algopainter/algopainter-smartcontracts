@@ -146,6 +146,14 @@ contract AlgoPainterBidBackPirs is
             _creatorPirsRate
         );
     }
+
+    function getCreatorPIRSByTokenAddress(address _tokenAddress)
+        public
+        view
+        returns(uint256)
+    {
+        return creatorPirsRatePerCollection[_tokenAddress];
+    }
     
     function getBidbackRate(uint256 _auctionId) 
         public 
