@@ -1,11 +1,11 @@
 const { mnemonic, rpcUrl, account, gasLimit, web3, contracts } = require("./settings.js");
 
-const AlgoPainterAuctionSystem = require('./contracts/AlgoPainterAuctionSystem.json');
-const AlgoPainterBidBackPirs = require('./contracts/AlgoPainterBidBackPirs.json');
-const AlgoPainterRewardsSystem = require('./contracts/AlgoPainterRewardsSystem.json');
-const AlgoPainterToken = require('./contracts/AlgoPainterToken.json');
-const AlgoPainterGweiItem = require('./contracts/AlgoPainterGweiItem.json');
-const AlgoPainterExpressionsItem = require('./contracts/AlgoPainterExpressionsItem.json');
+const AlgoPainterAuctionSystem = require('../build/contracts/AlgoPainterAuctionSystem.json');
+const AlgoPainterBidBackPirs = require('../build/contracts/AlgoPainterBidBackPirs.json');
+const AlgoPainterRewardsSystem = require('../build/contracts/AlgoPainterRewardsSystem.json');
+const AlgoPainterToken = require('../build/contracts/AlgoPainterToken.json');
+const AlgoPainterGweiItem = require('../build/contracts/AlgoPainterGweiItem.json');
+const AlgoPainterExpressionsItem = require('../build/contracts/AlgoPainterExpressionsItem.json');
 
 const Configurator = function () {
   this.write = true;
@@ -40,7 +40,7 @@ const Configurator = function () {
         contracts.AlgoPainterRewardsSystem,
         250,
         250,
-        [contracts.AlgoPainterToken, contracts.AlgoPainterFran],
+        [contracts.AlgoPainterToken],
         contracts.AlgoPainterRewardsSystem,
         contracts.AlgoPainterBidBackPirs
       );
@@ -128,7 +128,7 @@ const Configurator = function () {
 
 (async () => {
   try {
-    Configurator.write = false;
+    Configurator.write = true;
     
     console.log(await Configurator.auctionSystem());
     console.log(await Configurator.bidbackPirsSystem());

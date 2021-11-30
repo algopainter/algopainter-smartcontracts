@@ -1,9 +1,12 @@
 const { mnemonic, rpcUrl, account, gasLimit, web3 } = require("./settings.js");
 
-const AlgoPainterAuctionSystem = require('./contracts/AlgoPainterAuctionSystem.json');
-const AlgoPainterBidBackPirs = require('./contracts/AlgoPainterBidBackPirs.json');
-const AlgoPainterRewardsSystem = require('./contracts/AlgoPainterRewardsSystem.json');
-const AlgoPainterToken = require('./contracts/AlgoPainterToken.json');
+const AlgoPainterToken = require('../build/contracts/AlgoPainterToken.json');
+const AlgoPainterGweiItem = require('../build/contracts/AlgoPainterGweiItem.json');
+const AlgoPainterExpressionsItem = require('../build/contracts/AlgoPainterExpressionsItem.json');
+
+const AlgoPainterAuctionSystem = require('../build/contracts/AlgoPainterAuctionSystem.json');
+const AlgoPainterBidBackPirs = require('../build/contracts/AlgoPainterBidBackPirs.json');
+const AlgoPainterRewardsSystem = require('../build/contracts/AlgoPainterRewardsSystem.json');
 
 const deploy = async (abi, bytecode, args) => {
   const contract = new web3.eth.Contract(abi);
@@ -17,7 +20,7 @@ const deploy = async (abi, bytecode, args) => {
       from: account,
       data: deployTx.encodeABI(),
       gas: web3.utils.toHex(gasLimit),
-      gasPrice: web3.utils.toHex(web3.utils.toWei('20', 'gwei'))
+      gasPrice: web3.utils.toHex(web3.utils.toWei('30', 'gwei'))
     },
     mnemonic
   );
