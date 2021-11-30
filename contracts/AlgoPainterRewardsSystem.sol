@@ -300,7 +300,7 @@ contract AlgoPainterRewardsSystem is
     function stakePirs(uint256 auctionId, uint256 amount) external {
         AlgoPainterAuctionSystem auctionSystem = AlgoPainterAuctionSystem(auctionSystemAddress);
 
-        (address beneficiary,, address tokenAddress, uint256 tokenId,, uint256 auctionEndTime,,,,) =
+        (,, address tokenAddress, uint256 tokenId,, uint256 auctionEndTime,,,,) =
             auctionSystem.getAuctionInfo(auctionId);
 
         require(
@@ -309,7 +309,7 @@ contract AlgoPainterRewardsSystem is
         );
 
         require(
-            oldOwnersUsersMapping[tokenAddress][tokenId][beneficiary],
+            oldOwnersUsersMapping[tokenAddress][tokenId][msg.sender],
             "AlgoPainterRewardsSystem: ACCOUNT_NOT_ELIGIBLE"
         );
 
