@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-v3
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -15,7 +15,8 @@ contract AuctionSystemManagerMOCK is IAuctionSystemManager {
         address bidder,
         uint256 amount,
         uint256 feeAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        bool isOverriden
     ) public override {}
 
     function onWithdraw(

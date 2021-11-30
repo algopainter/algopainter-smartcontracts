@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-v3
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";

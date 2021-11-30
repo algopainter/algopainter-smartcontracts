@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-v3
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -64,7 +64,8 @@ contract AlgoPainterAuctionSystem is
         address bidder,
         uint256 amount,
         uint256 feeAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        bool isOverriden
     );
 
     event AuctionEnded(
@@ -395,6 +396,11 @@ contract AlgoPainterAuctionSystem is
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
 
         require(
+            auctionInfo.beneficiary != msg.sender,
+            "AlgoPainterAuctionSystem:AUCTION_OWNER_CANNOT_BID"
+        );
+
+        require(
             getNow() <= auctionInfo.auctionEndTime,
             "AlgoPainterAuctionSystem:AUCTION_ENDED"
         );
@@ -424,7 +430,14 @@ contract AlgoPainterAuctionSystem is
             "AlgoPainterAuctionSystem:FAIL_TO_TRANSFER_FEE_AMOUNT"
         );
 
-        if (auctionInfo.highestBid != 0) {
+        //The new bidding user can be outbidded anytime and he may want to bid again
+        //This will transfer his outbidded value before he does the new bid
+        if(pendingReturns[_auctionId][msg.sender] > 0) {
+            withdraw(_auctionId);
+        }
+
+        //When stacking bids from same user should ignore the returns
+        if (auctionInfo.highestBid != 0 && auctionInfo.highestBidder != msg.sender) {
             pendingReturns[_auctionId][
                 auctionInfo.highestBidder
             ] = pendingReturns[_auctionId][auctionInfo.highestBidder].add(
@@ -438,6 +451,18 @@ contract AlgoPainterAuctionSystem is
             );
         }
 
+        bool isOverriden = false;
+        if(auctionInfo.highestBidder == msg.sender) {
+            (, uint256 oldFeeAmount) = getBidAmountInfo(auctionInfo.highestBid);
+            uint256 oldTotalAmount = auctionInfo.highestBid.add(oldFeeAmount);
+
+            feeAmount = feeAmount.add(oldFeeAmount);
+            totalAmount = totalAmount.add(oldTotalAmount);
+            _amount = _amount.add(auctionInfo.highestBid);
+
+            isOverriden = true;
+        }
+
         auctionInfo.highestBidder = msg.sender;
         auctionInfo.highestBid = _amount;
 
@@ -446,7 +471,8 @@ contract AlgoPainterAuctionSystem is
             msg.sender,
             totalAmount,
             feeAmount,
-            _amount
+            _amount,
+            isOverriden
         );
 
         emit HighestBidIncreased(
@@ -454,7 +480,8 @@ contract AlgoPainterAuctionSystem is
             msg.sender,
             totalAmount,
             feeAmount,
-            _amount
+            _amount,
+            isOverriden
         );
     }
 

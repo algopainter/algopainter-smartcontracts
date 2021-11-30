@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-v3
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 interface IAuctionSystemManager {
@@ -12,7 +12,8 @@ interface IAuctionSystemManager {
         address bidder,
         uint256 amount,
         uint256 feeAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        bool isOverriden
     ) external;
 
     function onWithdraw(

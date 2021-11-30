@@ -50,7 +50,7 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
         gwei.address,
         1,
         web3.utils.toWei('100', 'ether'),
-        (now + 20).toString(),
+        (now + 30).toString(),
         algopToken.address,
       );
 
@@ -66,7 +66,7 @@ contract('AlgoPainterRewardsSystem', (accounts) => {
       gwei.address,
       1,
       web3.utils.toWei('100', 'ether'),
-      (now + 20).toString(),
+      (now + 30).toString(),
       algopToken.address,
     );
   });

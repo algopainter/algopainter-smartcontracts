@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-v3
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -183,7 +183,8 @@ contract AlgoPainterRewardsSystem is
         address bidder,
         uint256 amount,
         uint256 feeAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        bool isOverriden
     ) override external {
         require(
             msg.sender == allowedSender,
