@@ -10,7 +10,7 @@ interface IAuctionRewardsRatesProvider {
         uint256 _auctionId
     ) external view returns (uint256);
 
-    function getCreatorPirsRate(
+    function getCreatorRoyaltiesRate(
         uint256 _auctionId
     ) external view returns (uint256);
 }

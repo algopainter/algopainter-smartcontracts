@@ -34,21 +34,21 @@ contract('AlgoPainterBidBackPirs', accounts => {
   });
 
   it('Should set max creator pirs and a creator pirs for a collection', async () => {
-    await bidbackPirs.setMaxCreatorPirsRate(gwei.address, 30);
+    await bidbackPirs.setMaxCreatorRoyaltiesRate(30);
 
-    const maxPirs = await bidbackPirs.getMaxCreatorPirsRate(gwei.address);
-    expect(maxPirs.toString()).to.be.equal('30', 'fail to check maxCreatorPirsRate');
+    const maxPirs = await bidbackPirs.getMaxCreatorRoyaltiesRate();
+    expect(maxPirs.toString()).to.be.equal('30', 'fail to check maxCreatorRoyaltiesRate');
 
-    const unsettedPirs = await bidbackPirs.getCreatorPirsRate(0);
-    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorPirsRate');
+    const unsettedPirs = await bidbackPirs.getCreatorRoyaltiesRate(0);
+    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorRoyaltiesRate');
 
-    await bidbackPirs.setCreatorPirsRate(gwei.address, 15);
+    await bidbackPirs.setCreatorRoyaltiesRate(gwei.address, 15);
 
-    const updatedPirs = await bidbackPirs.getCreatorPirsRate(0);
-    expect(updatedPirs.toString()).to.be.equal('15', 'fail to check creatorPirsRate');
+    const updatedPirs = await bidbackPirs.getCreatorRoyaltiesRate(0);
+    expect(updatedPirs.toString()).to.be.equal('15', 'fail to check creatorRoyaltiesRate');
 
-    const updatedPirsByAddress = await bidbackPirs.getCreatorPIRSByTokenAddress(gwei.address);
-    expect(updatedPirsByAddress.toString()).to.be.equal('15', 'fail to check creatorPirsRate');
+    const updatedPirsByAddress = await bidbackPirs.getCreatorRoyaltiesByTokenAddress(gwei.address);
+    expect(updatedPirsByAddress.toString()).to.be.equal('15', 'fail to check creatorRoyaltiesRate');
   });
 
   it('Should set max investor pirs for all collections and a investor pirs for a specific image in a collection', async () => {
@@ -58,12 +58,12 @@ contract('AlgoPainterBidBackPirs', accounts => {
     expect(maxPirs.toString()).to.be.equal('30', 'fail to check maxInvestorPirsRate');
 
     const unsettedPirs = await bidbackPirs.getInvestorPirsRate(0);
-    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorPirsRate');
+    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorRoyaltiesRate');
 
     await bidbackPirs.setInvestorPirsRate(gwei.address, 1, 25);
 
     const updatedPirs = await bidbackPirs.getInvestorPirsRate(0);
-    expect(updatedPirs.toString()).to.be.equal('25', 'fail to check creatorPirsRate');
+    expect(updatedPirs.toString()).to.be.equal('25', 'fail to check creatorRoyaltiesRate');
   });
 
   it('Should set max bidback for all auctions and a bidback for a specific auction', async () => {

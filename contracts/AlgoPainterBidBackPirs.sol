@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./IAuctionRewardsRatesProvider.sol";
 import "./IAuctionRewardsTotalRatesProvider.sol";
 import "./AlgoPainterBidBackPirsAccessControl.sol";
@@ -17,29 +18,29 @@ contract AlgoPainterBidBackPirs is
     );
 
     event InvestorPirsUpdated(
-        address _tokenAddress,
+        bytes32 _tokenAddress,
         uint256 _tokenId,
         uint256 _investorPirsRate
     );
 
-    event CreatorPirsUpdated(
-        address _tokenAddress,
-        uint256 _creatorPirsRate
+    event CreatorRoyaltiesUpdated(
+        bytes32 _tokenAddress,
+        uint256 _creatorRoyaltiesRate
     );
 
     AlgoPainterAuctionSystem auctionSystemAddress;
 
     mapping(uint256 => uint256) bidbackRatePerAuction;
-    mapping(address => mapping(uint256 => uint256)) investorPirsRatePerImage;
-    mapping(address => uint256) creatorPirsRatePerCollection;
-
-    mapping(address => uint256) maxCreatorPirsRatePerCollection;
+    mapping(bytes32 => mapping(uint256 => uint256)) investorPirsRatePerImage;
+    mapping(bytes32 => uint256) creatorRoyaltiesRates;
+    
+    uint256 maxCreatorRoyaltiesRates;
     uint256 maxInvestorPirsRate;
     uint256 maxBidbackRate;
     
     mapping(uint256 => bool) isBidbackSet;
-    mapping(address => bool) isCreatorPirsSet;
-    mapping(address => mapping(uint256 => bool)) isInvestorPirsSet;
+    mapping(bytes32 => bool) isCreatorRoyaltiesSet;
+    mapping(bytes32 => mapping(uint256 => bool)) isInvestorPirsSet;
 
     function setAuctionSystemAddress(AlgoPainterAuctionSystem _auctionSystemAddress)
         public
@@ -48,11 +49,11 @@ contract AlgoPainterBidBackPirs is
         auctionSystemAddress = _auctionSystemAddress;
     }
 
-    function setMaxCreatorPirsRate(address _tokenAddress, uint256 _maxCreatorPirsRate)
+    function setMaxCreatorRoyaltiesRate(uint256 _maxCreatorRoyaltiesRate)
         public 
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        maxCreatorPirsRatePerCollection[_tokenAddress] = _maxCreatorPirsRate;
+        maxCreatorRoyaltiesRates = _maxCreatorRoyaltiesRate;
     }
     
     function setMaxInvestorPirsRate(uint256 _maxInvestorPirsRate)
@@ -100,10 +101,9 @@ contract AlgoPainterBidBackPirs is
         );
     }
     
-    function setInvestorPirsRate(address _tokenAddress, uint256 _tokenId, uint256 _investorPirsRate)
+    function setInvestorPirsRate(bytes32 _tokenAddress, uint256 _tokenId, uint256 _investorPirsRate)
         public 
     {
-        
         require(
             isInvestorPirsSet[_tokenAddress][_tokenId] == false,
             "AlgoPainterBidBackPirs:INVESTOR_PIRS_ALREADY_SET"
@@ -124,35 +124,34 @@ contract AlgoPainterBidBackPirs is
         );
     }
     
-    function setCreatorPirsRate(address _tokenAddress, uint256 _creatorPirsRate)
+    function setCreatorRoyaltiesRate(bytes32 _hashAddress, uint256 _creatorRoyaltiesRate)
         public
     {
-        
         require(
-            isCreatorPirsSet[_tokenAddress] == false,
-            "AlgoPainterBidBackPirs:CREATOR_PIRS_ALREADY_SET"
+            isCreatorRoyaltiesSet[_hashAddress] == false,
+            "AlgoPainterBidBackPirs:CREATOR_ROYALTIES_ALREADY_SET"
         );
         
         require(
-            _creatorPirsRate <= maxCreatorPirsRatePerCollection[_tokenAddress],
-            "AlgoPainterBidBackPirs:CREATOR_PIRS_IS_GREATER_THAN_ALLOWED"
+            _creatorRoyaltiesRate <= maxCreatorRoyaltiesRates,
+            "AlgoPainterBidBackPirs:CREATOR_ROYALTIES_IS_GREATER_THAN_ALLOWED"
         );
 
-        creatorPirsRatePerCollection[_tokenAddress] = _creatorPirsRate;
-        isCreatorPirsSet[_tokenAddress] = true;
+        creatorRoyaltiesRates[_hashAddress] = _creatorRoyaltiesRate;
+        isCreatorRoyaltiesSet[_hashAddress] = true;
 
-        emit CreatorPirsUpdated(
-            _tokenAddress,
-            _creatorPirsRate
+        emit CreatorRoyaltiesUpdated(
+            _hashAddress,
+            _creatorRoyaltiesRate
         );
     }
 
-    function getCreatorPIRSByTokenAddress(address _tokenAddress)
+    function getCreatorRoyaltiesByTokenAddress(bytes32 _hashAddress)
         public
         view
         returns(uint256)
     {
-        return creatorPirsRatePerCollection[_tokenAddress];
+        return creatorRoyaltiesRates[_hashAddress];
     }
     
     function getBidbackRate(uint256 _auctionId) 
@@ -174,10 +173,10 @@ contract AlgoPainterBidBackPirs is
 
         (,,address _tokenAddress, uint256 _tokenId,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
 
-        return investorPirsRatePerImage[_tokenAddress][_tokenId];
+        return investorPirsRatePerImage[bytes32(bytes20(_tokenAddress))][_tokenId];
     }
 
-    function getInvestorPirsRatePerImage(address _tokenAddress, uint256 _tokenId)
+    function getInvestorPirsRatePerImage(bytes32 _tokenAddress, uint256 _tokenId)
         public
         view
         returns(uint256)
@@ -185,7 +184,7 @@ contract AlgoPainterBidBackPirs is
         return investorPirsRatePerImage[_tokenAddress][_tokenId];
     }
 
-    function getCreatorPirsRate(uint256 _auctionId)
+    function getCreatorRoyaltiesRate(uint256 _auctionId)
         public
         view
         override
@@ -195,15 +194,15 @@ contract AlgoPainterBidBackPirs is
 
         (,,address _tokenAddress,,,,,,,) = auctionSystem.getAuctionInfo(_auctionId);
 
-        return creatorPirsRatePerCollection[_tokenAddress];
+        return creatorRoyaltiesRates[bytes32(bytes20(_tokenAddress))];
     }
     
-    function getMaxCreatorPirsRate(address _tokenAddress)
+    function getMaxCreatorRoyaltiesRate()
         public 
         view 
         returns(uint256) 
     {
-        return maxCreatorPirsRatePerCollection[_tokenAddress];
+        return maxCreatorRoyaltiesRates;
     }
     
     function getMaxInvestorPirsRate()
@@ -227,6 +226,6 @@ contract AlgoPainterBidBackPirs is
     ) external view override returns (uint256) {
         return getBidbackRate(_auctionId) +
         getInvestorPirsRate(_auctionId) +
-        getCreatorPirsRate(_auctionId);
+        getCreatorRoyaltiesRate(_auctionId);
     }
 }

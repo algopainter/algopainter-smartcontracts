@@ -5,7 +5,7 @@ const AuctionSystemManagerMOCK = artifacts.require('AuctionSystemManagerMOCK');
 const AuctionRewardsRatesProviderMOCK = artifacts.require('AuctionRewardsRatesProviderMOCK');
 var sleep = require('sleep');
 
-contract.only('AlgoPainterAuctionSystem', accounts => {
+contract('AlgoPainterAuctionSystem', accounts => {
   let algop = null;
   let busd = null;
   let eth = null;

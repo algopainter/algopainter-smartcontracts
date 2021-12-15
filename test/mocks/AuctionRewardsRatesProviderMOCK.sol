@@ -24,7 +24,7 @@ contract AuctionRewardsRatesProviderMOCK is
         return 2000;
     }
 
-    function getCreatorPirsRate(
+    function getCreatorRoyaltiesRate(
         uint256
     ) override public pure returns (uint256) {
         return 1000;
@@ -35,6 +35,6 @@ contract AuctionRewardsRatesProviderMOCK is
     ) override public pure returns (uint256) {
         return getBidbackRate(_auctionId) 
             .add(getInvestorPirsRate(_auctionId))
-            .add(getCreatorPirsRate(_auctionId));
+            .add(getCreatorRoyaltiesRate(_auctionId));
     }
 }

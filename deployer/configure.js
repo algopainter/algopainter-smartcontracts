@@ -6,6 +6,7 @@ const AlgoPainterRewardsSystem = require('../build/contracts/AlgoPainterRewardsS
 const AlgoPainterToken = require('../build/contracts/AlgoPainterToken.json');
 const AlgoPainterGweiItem = require('../build/contracts/AlgoPainterGweiItem.json');
 const AlgoPainterExpressionsItem = require('../build/contracts/AlgoPainterExpressionsItem.json');
+const AlgoPainterPersonalItem = require('../build/contracts/AlgoPainterPersonalItem.json');
 
 const Configurator = function () {
   this.write = true;
@@ -25,6 +26,26 @@ const Configurator = function () {
     return await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
   }
 
+  this.personalItem = async () => {
+    console.log('=====================================================================================');
+    console.log('Configuring Algo Painter Personal Item');
+    console.log('=====================================================================================');
+
+    const personal = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contracts.AlgoPainterPersonalItem).methods;
+
+    if (this.write) {
+      const approveAuctionSystemTx = personal.setApprovalForAll(contracts.AlgoPainterAuctionSystem);
+      const setBidBackPirsContractTx = personal.setAlgoPainterBidBackPirsAddress(contracts.AlgoPainterBidBackPirs);
+
+      await this.sendTransaction(approveAuctionSystemTx, approveAuctionSystemTx.estimateGas({ from: account }));
+      await this.sendTransaction(setBidBackPirsContractTx, setBidBackPirsContractTx.estimateGas({ from: account }));
+    }
+
+    return {
+      setAlgoPainterBidBackPirsAddress: await (personal.getAlgoPainterBidBackPirsAddress().call()),
+    }
+  }
+
   this.auctionSystem = async () => {
     console.log('=====================================================================================');
     console.log('Configuring Auction System');
@@ -33,6 +54,7 @@ const Configurator = function () {
     const auction = new web3.eth.Contract(AlgoPainterAuctionSystem.abi, contracts.AlgoPainterAuctionSystem).methods;
     const gwei = new web3.eth.Contract(AlgoPainterGweiItem.abi, contracts.AlgoPainterGweiItem).methods;
     const expressions = new web3.eth.Contract(AlgoPainterExpressionsItem.abi, contracts.AlgoPainterExpressionsItem).methods;
+    const personal = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contracts.AlgoPainterPersonalItem).methods;
 
     if (this.write) {
       const setupTx = auction.setup(
@@ -47,10 +69,11 @@ const Configurator = function () {
 
       const gweiSetApprovalForAllTx = gwei.setApprovalForAll(contracts.AlgoPainterAuctionSystem, true);
       const expressionsSetApprovalForAllTx = expressions.setApprovalForAll(contracts.AlgoPainterAuctionSystem, true);
+      const personalSetApprovalForAllTx = personal.setApprovalForAll(contracts.AlgoPainterAuctionSystem, true);
 
-      await this.sendTransaction(setupTx, 1000000);
-      await this.sendTransaction(gweiSetApprovalForAllTx, 1000000);
-      await this.sendTransaction(expressionsSetApprovalForAllTx, 1000000);
+      await this.sendTransaction(setupTx, setupTx.estimateGas({ from: account }));
+      await this.sendTransaction(gweiSetApprovalForAllTx, setupTx.estimateGas({ from: account }));
+      await this.sendTransaction(expressionsSetApprovalForAllTx, setupTx.estimateGas({ from: account }));
     }
 
     return {
@@ -72,25 +95,22 @@ const Configurator = function () {
     if (this.write) {
       const setAuctionSystemAddressTx = bidbackPirs.setAuctionSystemAddress(contracts.AlgoPainterAuctionSystem);
       const setMaxInvestorPirsRateTx = bidbackPirs.setMaxInvestorPirsRate(3000);
-      const setMaxCreatorPirsRateTx = bidbackPirs.setMaxCreatorPirsRate(contracts.AlgoPainterGweiItem, 500);
-      const setMaxCreatorPirsRateTx2 = bidbackPirs.setMaxCreatorPirsRate(contracts.AlgoPainterExpressionsItem, 500);
-      const setCreatorPirsRateTx = bidbackPirs.setCreatorPirsRate(contracts.AlgoPainterGweiItem, 500);
-      const setCreatorPirsRateTx2 = bidbackPirs.setCreatorPirsRate(contracts.AlgoPainterExpressionsItem, 500);
+      const setMaxCreatorRoyaltiesRateTx = bidbackPirs.setMaxCreatorRoyaltiesRate(3000);
+      const setCreatorRoyaltiesRateTx = bidbackPirs.setCreatorRoyaltiesRate(contracts.AlgoPainterGweiItem, 500);
+      const setCreatorRoyaltiesRateTx2 = bidbackPirs.setCreatorRoyaltiesRate(contracts.AlgoPainterExpressionsItem, 500);
       const setMaxBidbackRateTx = bidbackPirs.setMaxBidbackRate(3000);
 
-      await this.sendTransaction(setAuctionSystemAddressTx, 1000000);
-      await this.sendTransaction(setMaxCreatorPirsRateTx, 1000000);
-      await this.sendTransaction(setMaxCreatorPirsRateTx2, 1000000);
-      await this.sendTransaction(setCreatorPirsRateTx, 1000000);
-      await this.sendTransaction(setCreatorPirsRateTx2, 1000000);
-      await this.sendTransaction(setMaxInvestorPirsRateTx, 1000000);
-      await this.sendTransaction(setMaxBidbackRateTx, 1000000);
+      await this.sendTransaction(setAuctionSystemAddressTx, setAuctionSystemAddressTx.estimateGas({ from: account }));
+      await this.sendTransaction(setMaxCreatorRoyaltiesRateTx, setMaxCreatorRoyaltiesRateTx.estimateGas({ from: account }));
+      await this.sendTransaction(setCreatorRoyaltiesRateTx, setCreatorRoyaltiesRateTx.estimateGas({ from: account }));
+      await this.sendTransaction(setCreatorRoyaltiesRateTx2, setCreatorRoyaltiesRateTx2.estimateGas({ from: account }));
+      await this.sendTransaction(setMaxInvestorPirsRateTx, setMaxInvestorPirsRateTx.estimateGas({ from: account }));
+      await this.sendTransaction(setMaxBidbackRateTx, setMaxBidbackRateTx.estimateGas({ from: account }));
     }
     return {
-      setMaxCreatorPirsRateGwei: await bidbackPirs.getMaxCreatorPirsRate(contracts.AlgoPainterGweiItem).call(),
-      setMaxCreatorPirsRateExpressions: await bidbackPirs.getMaxCreatorPirsRate(contracts.AlgoPainterExpressionsItem).call(),
-      setCreatorPirsRateGwei: await bidbackPirs.getCreatorPIRSByTokenAddress(contracts.AlgoPainterGweiItem).call(),
-      setCreatorPirsRateExpressions: await bidbackPirs.getCreatorPIRSByTokenAddress(contracts.AlgoPainterExpressionsItem).call(),
+      setMaxCreatorRoyaltiesRate: await bidbackPirs.getMaxCreatorRoyaltiesRate().call(),
+      setCreatorRoyaltiesRateGwei: await bidbackPirs.getCreatorRoyaltiesByTokenAddress(contracts.AlgoPainterGweiItem).call(),
+      setCreatorRoyaltiesRateExpressions: await bidbackPirs.getCreatorRoyaltiesByTokenAddress(contracts.AlgoPainterExpressionsItem).call(),
       setMaxInvestorPirsRate: await bidbackPirs.getMaxInvestorPirsRate().call(),
       setMaxBidbackRate: await bidbackPirs.getMaxBidbackRate().call(),
     }
@@ -130,6 +150,7 @@ const Configurator = function () {
   try {
     Configurator.write = true;
     
+    console.log(await Configurator.personalItem());
     console.log(await Configurator.auctionSystem());
     console.log(await Configurator.bidbackPirsSystem());
     console.log(await Configurator.rewardsSystem());
