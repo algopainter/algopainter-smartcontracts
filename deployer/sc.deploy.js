@@ -1,4 +1,4 @@
-const { mnemonic, rpcUrl, account, gasLimit, web3 } = require("./settings.js");
+const { mnemonic, rpcUrl, account, gasLimit, web3, contracts } = require("./settings.js");
 
 /*
   web3.utils.soliditySha3(
@@ -25,14 +25,14 @@ const deploy = async (abi, bytecode, args) => {
     arguments: args
   });
 
-  const estimatedGas = deployTx.estimateGas({ from: account });
+  const estimatedGas = await deployTx.estimateGas({ from: account });
 
   const createTransaction = await web3.eth.accounts.signTransaction(
     {
       from: account,
       data: deployTx.encodeABI(),
-      gas: web3.utils.toHex(gasLimit),
-      gasPrice: web3.utils.toHex(estimatedGas)
+      gas: estimatedGas,
+      gasPrice: web3.utils.toHex(web3.utils.toWei('20', 'gwei'))
     },
     mnemonic
   );
@@ -41,7 +41,7 @@ const deploy = async (abi, bytecode, args) => {
 }
 
 //deploy(AlgoPainterToken.abi, AlgoPainterToken.bytecode, [ "AlgoPainter Token", "ALGOP" ]).then(result => console.log('AlgoPainterToken:', result));
-//deploy(AlgoPainterPersonalItem.abi, AlgoPainterPersonalItem.bytecode).then(result => console.log('AlgoPainterPersonalItem:', result));
+//deploy(AlgoPainterPersonalItem.abi, AlgoPainterPersonalItem.bytecode, [contracts.AlgoPainterToken, account]).then(result => console.log('AlgoPainterPersonalItem:', result));
 //deploy(AlgoPainterAuctionSystem.abi, AlgoPainterAuctionSystem.bytecode).then(result => console.log('AlgoPainterAuctionSystem:', result));
 //deploy(AlgoPainterBidBackPirs.abi, AlgoPainterBidBackPirs.bytecode).then(result => console.log('AlgoPainterBidBackPirs:', result));
-//deploy(AlgoPainterRewardsSystem.abi, AlgoPainterRewardsSystem.bytecode).then(result => console.log('AlgoPainterRewardsSystem:', result));
+deploy(AlgoPainterRewardsSystem.abi, AlgoPainterRewardsSystem.bytecode).then(result => console.log('AlgoPainterRewardsSystem:', result));

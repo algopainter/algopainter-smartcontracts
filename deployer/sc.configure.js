@@ -1,4 +1,4 @@
-const { mnemonic, rpcUrl, account, gasLimit, web3, contracts } = require("./settings.js");
+const { mongourl, chainID, blockExplorer, mnemonic, rpcUrl, account, gasLimit, web3, contracts } = require("./settings.js");
 
 const AlgoPainterAuctionSystem = require('../build/contracts/AlgoPainterAuctionSystem.json');
 const AlgoPainterBidBackPirs = require('../build/contracts/AlgoPainterBidBackPirs.json');
@@ -8,15 +8,18 @@ const AlgoPainterGweiItem = require('../build/contracts/AlgoPainterGweiItem.json
 const AlgoPainterExpressionsItem = require('../build/contracts/AlgoPainterExpressionsItem.json');
 const AlgoPainterPersonalItem = require('../build/contracts/AlgoPainterPersonalItem.json');
 
+const Mongoose = require('mongoose');
+const SettingsContext = require('./db.settings.js');
+
 const Configurator = function () {
   this.write = true;
 
-  this.sendTransaction = async (tx, gasEstimate) => {
+  this.sendTransaction = async (tx) => {
     const createTransaction = await web3.eth.accounts.signTransaction(
       {
         to: tx._parent._address,
         data: tx.encodeABI(),
-        gas: web3.utils.toHex(gasEstimate),
+        gas: web3.utils.toHex(await tx.estimateGas({ from: account })),
         gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei')),
         value: 0
       },
@@ -34,11 +37,11 @@ const Configurator = function () {
     const personal = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contracts.AlgoPainterPersonalItem).methods;
 
     if (this.write) {
-      const approveAuctionSystemTx = personal.setApprovalForAll(contracts.AlgoPainterAuctionSystem);
+      const approveAuctionSystemTx = personal.setApprovalForAll(contracts.AlgoPainterAuctionSystem, true);
       const setBidBackPirsContractTx = personal.setAlgoPainterBidBackPirsAddress(contracts.AlgoPainterBidBackPirs);
 
-      await this.sendTransaction(approveAuctionSystemTx, approveAuctionSystemTx.estimateGas({ from: account }));
-      await this.sendTransaction(setBidBackPirsContractTx, setBidBackPirsContractTx.estimateGas({ from: account }));
+      await this.sendTransaction(approveAuctionSystemTx);
+      await this.sendTransaction(setBidBackPirsContractTx);
     }
 
     return {
@@ -71,9 +74,10 @@ const Configurator = function () {
       const expressionsSetApprovalForAllTx = expressions.setApprovalForAll(contracts.AlgoPainterAuctionSystem, true);
       const personalSetApprovalForAllTx = personal.setApprovalForAll(contracts.AlgoPainterAuctionSystem, true);
 
-      await this.sendTransaction(setupTx, setupTx.estimateGas({ from: account }));
-      await this.sendTransaction(gweiSetApprovalForAllTx, setupTx.estimateGas({ from: account }));
-      await this.sendTransaction(expressionsSetApprovalForAllTx, setupTx.estimateGas({ from: account }));
+      await this.sendTransaction(setupTx);
+      await this.sendTransaction(gweiSetApprovalForAllTx);
+      await this.sendTransaction(expressionsSetApprovalForAllTx);
+      await this.sendTransaction(personalSetApprovalForAllTx);
     }
 
     return {
@@ -100,12 +104,12 @@ const Configurator = function () {
       const setCreatorRoyaltiesRateTx2 = bidbackPirs.setCreatorRoyaltiesRate(contracts.AlgoPainterExpressionsItem, 500);
       const setMaxBidbackRateTx = bidbackPirs.setMaxBidbackRate(3000);
 
-      await this.sendTransaction(setAuctionSystemAddressTx, setAuctionSystemAddressTx.estimateGas({ from: account }));
-      await this.sendTransaction(setMaxCreatorRoyaltiesRateTx, setMaxCreatorRoyaltiesRateTx.estimateGas({ from: account }));
-      await this.sendTransaction(setCreatorRoyaltiesRateTx, setCreatorRoyaltiesRateTx.estimateGas({ from: account }));
-      await this.sendTransaction(setCreatorRoyaltiesRateTx2, setCreatorRoyaltiesRateTx2.estimateGas({ from: account }));
-      await this.sendTransaction(setMaxInvestorPirsRateTx, setMaxInvestorPirsRateTx.estimateGas({ from: account }));
-      await this.sendTransaction(setMaxBidbackRateTx, setMaxBidbackRateTx.estimateGas({ from: account }));
+      await this.sendTransaction(setAuctionSystemAddressTx);
+      await this.sendTransaction(setMaxCreatorRoyaltiesRateTx);
+      await this.sendTransaction(setCreatorRoyaltiesRateTx);
+      await this.sendTransaction(setCreatorRoyaltiesRateTx2);
+      await this.sendTransaction(setMaxInvestorPirsRateTx);
+      await this.sendTransaction(setMaxBidbackRateTx);
     }
     return {
       setMaxCreatorRoyaltiesRate: await bidbackPirs.getMaxCreatorRoyaltiesRate().call(),
@@ -129,11 +133,11 @@ const Configurator = function () {
       const setRewardsRatesProviderAddressTx = rewardsSystemManager.setRewardsRatesProviderAddress(contracts.AlgoPainterBidBackPirs);
       const setRewardsTotalRatesProviderAddressTx = rewardsSystemManager.setRewardsTotalRatesProviderAddress(contracts.AlgoPainterBidBackPirs);
 
-      await this.sendTransaction(setAllowedSenderTx, 1000000);
-      await this.sendTransaction(setRewardsTokenAddressTx, 1000000);
-      await this.sendTransaction(setAuctionSystemAddressTx, 1000000);
-      await this.sendTransaction(setRewardsRatesProviderAddressTx, 1000000);
-      await this.sendTransaction(setRewardsTotalRatesProviderAddressTx, 1000000);
+      await this.sendTransaction(setAllowedSenderTx);
+      await this.sendTransaction(setRewardsTokenAddressTx);
+      await this.sendTransaction(setAuctionSystemAddressTx);
+      await this.sendTransaction(setRewardsRatesProviderAddressTx);
+      await this.sendTransaction(setRewardsTotalRatesProviderAddressTx);
     }
     return {
       setRewardsTokenAddress: await rewardsSystemManager.getRewardsTokenAddress().call(),
@@ -143,17 +147,139 @@ const Configurator = function () {
     }
   }
 
+  this.reloadSettings = async () => {
+    console.log('=====================================================================================');
+    console.log('Reloading Settings');
+    console.log('=====================================================================================');
+
+    Mongoose.connect(mongourl, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+
+    try {
+      if (this.write) {
+        const currentBlock = await web3.eth.getBlockNumber();
+        await SettingsContext.deleteOne();
+        await SettingsContext.create({
+          tokens: [
+            {
+              value: '1',
+              label: 'BTCB',
+              tokenAddress: '0x6ce8da28e2f864420840cf74474eff5fd80e65b8',
+              decimalPlaces: 18,
+              img: '/images/BTC.svg',
+            },
+            {
+              value: '3',
+              name: 'AlgoPainter Token',
+              tokenAddress: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
+              label: 'ALGOP',
+              decimalPlaces: 18,
+              img: '/images/ALGOP.svg'
+            },
+            {
+              value: '6',
+              name: 'DAI',
+              tokenAddress: '0xec5dcb5dbf4b114c9d0f65bccab49ec54f6a0867',
+              label: 'DAI',
+              decimalPlaces: 18,
+              img: '/images/DAI.svg'
+            }
+          ],
+          smartcontracts: [
+            {
+              address: contracts.AlgoPainterAuctionSystem,
+              name: 'AlgoPainterAuctionSystem',
+              symbol: 'APAS',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterAuctionSystem.abi,
+              inUse: true
+            },
+            {
+              address: contracts.AlgoPainterRewardsSystem,
+              name: 'AlgoPainterRewardsSystem',
+              symbol: 'APRS',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterRewardsSystem.abi,
+              inUse: true
+            },
+            {
+              address: contracts.AlgoPainterBidBackPirs,
+              name: 'AlgoPainterBidBackPirs',
+              symbol: 'APBPS',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterBidBackPirs.abi,
+              inUse: true
+            },
+            {
+              address: contracts.AlgoPainterGweiItem,
+              name: 'AlgoPainterGweiItem',
+              symbol: 'APGI',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterGweiItem.abi,
+              inUse: false
+            },
+            {
+              address: contracts.AlgoPainterExpressionsItem,
+              name: 'AlgoPainterExpressionsItem',
+              symbol: 'APEXPI',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterExpressionsItem.abi,
+              inUse: true
+            },
+            {
+              address: contracts.AlgoPainterPersonalItem,
+              name: 'AlgoPainterPersonalItem',
+              symbol: 'APPI',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterPersonalItem.abi,
+              inUse: true
+            }
+          ]
+        });
+      }
+  
+      return await SettingsContext.findOne();
+    } catch(e) {
+      return e;
+    } finally {
+      Mongoose.disconnect();
+    }
+  }
+
   return this;
 }();
 
 (async () => {
   try {
     Configurator.write = true;
-    
-    console.log(await Configurator.personalItem());
-    console.log(await Configurator.auctionSystem());
-    console.log(await Configurator.bidbackPirsSystem());
-    console.log(await Configurator.rewardsSystem());
+
+    console.log(contracts);
+
+    // console.log(await Configurator.personalItem());
+    // console.log(await Configurator.auctionSystem());
+    // console.log(await Configurator.bidbackPirsSystem());
+    // console.log(await Configurator.rewardsSystem());
+    console.log(await Configurator.reloadSettings());
 
   } catch (error) {
     console.error(error);

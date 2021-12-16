@@ -6,7 +6,7 @@ const AuctionRewardsRatesProviderMOCK = artifacts.require('AuctionRewardsRatesPr
 
 const sleep = require('sleep');
 
-contract.only('AlgoPainterRewardsSystem', (accounts) => {
+contract('AlgoPainterRewardsSystem', (accounts) => {
   const AUCTION_FEE_ACCOUNT = accounts[9];
   const GWEI_OWNER_ACCOUNT = accounts[8];
 

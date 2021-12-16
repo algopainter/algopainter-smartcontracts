@@ -24,6 +24,7 @@ contract AlgoPainterPersonalItem is
     bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
     uint256 maxTokens;
     uint256 mintAmount;
+    uint256 collectedMintAmount;
 
     Counters.Counter private _tokenIds;
 
@@ -35,10 +36,22 @@ contract AlgoPainterPersonalItem is
         bytes32 indexed hash
     );
 
+    address devAddress;
     address algoPainterBidBackPirsAddress;
+    AlgoPainterToken algop;
 
-    constructor() ERC721("Algo Painter Personal Item", "APPERI") {
+    constructor(AlgoPainterToken _algop, address _devAddress) ERC721("Algo Painter Personal Item", "APPERI") {
         maxTokens = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        algop = _algop;
+        devAddress = _devAddress;
+        mintAmount = 100 ether;
+    }
+
+    function setMintAmount(uint256 amount) 
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        mintAmount = amount;
     }
 
     function setAlgoPainterBidBackPirsAddress(address _algoPainterBidBackPirs)
@@ -130,7 +143,7 @@ contract AlgoPainterPersonalItem is
         override
         returns (uint256)
     {
-        revert();
+        return collectedMintAmount;
     }
 
     function allowedTokens(uint256 _algoPainterId)
@@ -148,7 +161,8 @@ contract AlgoPainterPersonalItem is
         override
         returns (uint256)
     {
-        revert();
+        require(_algoPainterId == 2, "AlgoPainterPersonalItem:INVALID_ID");
+        return collectedMintAmount == 0 ? 0 : collectedMintAmount / 2;
     }
 
     function hashTokenURI(uint256 _tokenId, string memory _tokenURI)
@@ -232,6 +246,14 @@ contract AlgoPainterPersonalItem is
             hashes[hash] == 0,
             "AlgoPainterPersonalItem:ALREADY_REGISTERED"
         );
+
+        require(
+            algop.allowance(msg.sender, address(this)) >= mintAmount,
+            "AlgoPainterGweiItem:MINIMUM_ALLOWANCE_REQUIRED"
+        );
+
+        algop.transferFrom(msg.sender, devAddress, mintAmount);
+        collectedMintAmount += mintAmount;
 
         _tokenIds.increment();
 

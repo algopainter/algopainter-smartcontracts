@@ -4,7 +4,7 @@ const AlgoPainterBidbackPirs = artifacts.require('AlgoPainterBidBackPirs');
 const AuctionSystemManagerMOCK = artifacts.require('AuctionSystemManagerMOCK');
 const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
 
-contract('AlgoPainterPersonalItem', accounts => {
+contract.only('AlgoPainterPersonalItem', accounts => {
   let algop = null;
   let auction = null;
   let bidbackPirs = null;
@@ -12,7 +12,7 @@ contract('AlgoPainterPersonalItem', accounts => {
 
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
-    instance = await AlgoPainterPersonalItem.new();
+    instance = await AlgoPainterPersonalItem.new(algop.address, accounts[9]);
     auction = await AlgoPainterAuctionSystem.new();
     bidbackPirs = await AlgoPainterBidbackPirs.new();
     auctionSystemManager = await AuctionSystemManagerMOCK.new();
@@ -36,11 +36,18 @@ contract('AlgoPainterPersonalItem', accounts => {
   it('should mint a new paint', async () => {
     const owner = accounts[2];
 
+    const amount = await instance.getCurrentAmount(2, await instance.totalSupply());
+    algop.transfer(owner, amount, { from: accounts[0] });
+    await algop.approve(instance.address, amount, { from: owner });
+
     await instance.mint('new text', '0xa2b445f459650c4c6a137f24cda570068149b25b8e203f242ba728274ef5b945', 400, 'https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ', { from: owner });
     const returnedTokenURI = await instance.tokenURI(1);
 
     expect(returnedTokenURI).to.be.equal('https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ');
     expect(await instance.getName(3)).to.be.equal('Personal Item by AlgoPainter');
+
+    expect((await instance.getCollectedTokenAmount(2)).toString()).to.be.equal('100000000000000000000');
+    expect((await instance.getTokenAmountToBurn(2)).toString()).to.be.equal('50000000000000000000');
   });
 
   it('should update a token URI based on a valid signature', async () => {
