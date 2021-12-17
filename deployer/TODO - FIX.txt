@@ -1,0 +1,11 @@
+1 - AuctionSystem (Global close de auctions)
+2 - BidbackPirs
+3 - Rewards (Emergency Money Out)
+4 - Gwei
+5 - Expressions
+6 - Personal Item
+
+
+decimalJs
+
+- O sistema deve ser resiliente a mudanças de contrato

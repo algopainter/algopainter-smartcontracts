@@ -70,6 +70,7 @@ contract AlgoPainterBidBackPirs is
         maxBidbackRate = _maxBidbackRate;
     }
     
+    //@TODO: Do no limit to the registred contract
     function setBidbackRate(uint256 _auctionId, uint256 _bidbackRate)
         public 
     {

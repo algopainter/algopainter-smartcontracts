@@ -395,6 +395,7 @@ contract AlgoPainterAuctionSystem is
     function bid(uint256 _auctionId, uint256 _amount) public {
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
 
+        //TODO: Review
         require(
             auctionInfo.beneficiary != msg.sender,
             "AlgoPainterAuctionSystem:AUCTION_OWNER_CANNOT_BID"
@@ -432,6 +433,7 @@ contract AlgoPainterAuctionSystem is
 
         //The new bidding user can be outbidded anytime and he may want to bid again
         //This will transfer his outbidded value before he does the new bid
+        //@TODO - Remove Gas useless
         if(pendingReturns[_auctionId][msg.sender] > 0) {
             withdraw(_auctionId);
         }
@@ -451,6 +453,7 @@ contract AlgoPainterAuctionSystem is
             );
         }
 
+        //@TODO: Remove uneeded 
         bool isOverriden = false;
         if(auctionInfo.highestBidder == msg.sender) {
             (, uint256 oldFeeAmount) = getBidAmountInfo(auctionInfo.highestBid);
@@ -495,6 +498,7 @@ contract AlgoPainterAuctionSystem is
 
     function withdraw(uint256 _auctionId) public {
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
+        //@TODO Verify contract balance balanceOf(address(this))
         uint256 amount = pendingReturns[_auctionId][msg.sender];
 
         if (amount > 0) {
@@ -585,7 +589,7 @@ contract AlgoPainterAuctionSystem is
             tokenPrice.transfer(addressFee, feeAmount),
             "AlgoPainterAuctionSystem:FAIL_TO_PAY_DEVADDRESS"
         );
-
+        
         if (auctionInfo.tokenType == TokenType.ERC721) {
             IERC721 token = IERC721(auctionInfo.tokenAddress);
             token.safeTransferFrom(address(this), winner, auctionInfo.tokenId);
@@ -619,6 +623,8 @@ contract AlgoPainterAuctionSystem is
 
         require(!auctionInfo.ended, "AlgoPainterAuctionSystem:ALREADY_ENDED");
 
+        //TODO: This locks the NFT if something occurs
+        //Withdraw state
         require(
             auctionInfo.highestBid == 0,
             "AlgoPainterAuctionSystem:ALREADY_HAS_BIDS"
