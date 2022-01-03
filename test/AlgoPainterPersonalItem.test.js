@@ -1,29 +1,32 @@
 const AlgoPainterToken = artifacts.require('AlgoPainterToken');
 const AlgoPainterPersonalItem = artifacts.require('AlgoPainterPersonalItem');
-const AlgoPainterBidbackPirs = artifacts.require('AlgoPainterBidBackPirs');
-const AuctionSystemManagerMOCK = artifacts.require('AuctionSystemManagerMOCK');
+const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
+const AuctionHookMOCK = artifacts.require('AuctionHookMOCK');
 const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
+const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
 
-contract.only('AlgoPainterPersonalItem', accounts => {
+contract('AlgoPainterPersonalItem', accounts => {
   let algop = null;
   let auction = null;
-  let bidbackPirs = null;
+  let rewardRates = null;
+  let nftCreators = null;
   let instance = null;
 
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
-    instance = await AlgoPainterPersonalItem.new(algop.address, accounts[9]);
+    nftCreators = await AlgoPainterNFTCreators.new();
+    rewardRates = await AlgoPainterRewardsRates.new();
     auction = await AlgoPainterAuctionSystem.new();
-    bidbackPirs = await AlgoPainterBidbackPirs.new();
-    auctionSystemManager = await AuctionSystemManagerMOCK.new();
+    auctionHook = await AuctionHookMOCK.new();
+    instance = await AlgoPainterPersonalItem.new(algop.address, nftCreators.address, rewardRates.address, accounts[9]);
 
-    await auction.setup(accounts[9], auctionSystemManager.address, 1000, 250, [algop.address], auctionSystemManager.address, bidbackPirs.address);
+    await auction.setup(accounts[9], auctionHook.address, 1000, 250, [algop.address], rewardRates.address);
 
-    await bidbackPirs.setAuctionSystemAddress(auction.address);
-    await bidbackPirs.setMaxCreatorRoyaltiesRate(3000);
-    await instance.setAlgoPainterBidBackPirsAddress(bidbackPirs.address);
+    await rewardRates.setAuctionSystemAddress(auction.address);
+    await rewardRates.setMaxCreatorRoyaltiesRate(3000);
+    await instance.setAlgoPainterRewardsRatesAddress(rewardRates.address);
     await instance.setApprovalForAll(auction.address, true);
-
+    await nftCreators.grantRole(await instance.CONFIGURATOR_ROLE(), instance.address);
   });
 
   it('should add account[1] as a validator', async () => {
@@ -48,6 +51,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
 
     expect((await instance.getCollectedTokenAmount(2)).toString()).to.be.equal('100000000000000000000');
     expect((await instance.getTokenAmountToBurn(2)).toString()).to.be.equal('50000000000000000000');
+    expect((await rewardRates.getCreatorRoyaltiesByTokenAddress(await instance.getTokenHashForAuction(1))).toString()).to.be.equal('400');
   });
 
   it('should update a token URI based on a valid signature', async () => {

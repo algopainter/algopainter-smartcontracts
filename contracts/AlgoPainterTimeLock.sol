@@ -3,7 +3,7 @@ pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./AlgoPainterAccessControl.sol";
+import "./accessControl/AlgoPainterAccessControl.sol";
 
 contract AlgoPainterTimeLock is AlgoPainterAccessControl {
     bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");

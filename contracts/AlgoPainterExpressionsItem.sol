@@ -5,10 +5,10 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./AlgoPainterAccessControl.sol";
+import "./accessControl/AlgoPainterAccessControl.sol";
 import "./AlgoPainterToken.sol";
 
-import "./IAlgoPainterItem.sol";
+import "./interfaces/IAlgoPainterItem.sol";
 
 contract AlgoPainterExpressionsItem is
     IAlgoPainterItem,

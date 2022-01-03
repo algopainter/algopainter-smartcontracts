@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Snapshot.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Pausable.sol";
 
-import "./AlgoPainterAccessControl.sol";
+import "./accessControl/AlgoPainterAccessControl.sol";
 
 contract AlgoPainterToken is
     AlgoPainterAccessControl,

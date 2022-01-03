@@ -55,8 +55,7 @@ allFiredEvents
 .coverage_cache
 .coverage_contracts
 
-# buidler
+# builder
 cache
 artifacts
-
-.env
+bin/*

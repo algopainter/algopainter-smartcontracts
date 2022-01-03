@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config('../.env');
 
 const Web3Class = require('web3');
 const mnemonic = process.env.PRIVATE_KEY;
@@ -19,13 +19,14 @@ module.exports = {
   account,
   gasLimit,
   web3,
-  contracts : {
+  contractsAddress : {
     AlgoPainterToken: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
     AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',
     AlgoPainterExpressionsItem: '0xbe9cac059835236da5e91cd72688c43886b63419',
-    AlgoPainterPersonalItem: '0xf80c1D8b52B24855F4827e2B6745eBD557eDffE1'.toLowerCase(),
-    AlgoPainterAuctionSystem: '0x5e09451531a08Da2a19597FC8B84637E977B2E6f'.toLowerCase(),
-    AlgoPainterBidBackPirs: '0xc518d36625c5BC34D6e03D430A8b3A33e40d52c3'.toLowerCase(),
-    AlgoPainterRewardsSystem: '0x71b286635546E142d29F81c3259983C201a48Cef'.toLowerCase()
+    AlgoPainterPersonalItem: '0x1458b39262543cd76252174C8F4aD84601Dd0604'.toLowerCase(),
+    AlgoPainterAuctionSystem: '0x6795D070847dB7fcd0a63FCf9532DB1f78cE8F7d'.toLowerCase(),
+    AlgoPainterRewardsRates: '0x53Aac215874f18fd819a978a7b0C4268DC40891D'.toLowerCase(),
+    AlgoPainterRewardsDistributor: '0xE8b0D7867Cf5319DF6c1251CACb346Aa58267475'.toLowerCase(),
+    AlgoPainterNFTCreators: '0x9f529CC68932bd816D49d5BA4d18F8E55dFD1f75'.toLowerCase()
   }
 }

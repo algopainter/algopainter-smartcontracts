@@ -4,10 +4,10 @@ pragma solidity >=0.6.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-import "./AlgoPainterAccessControl.sol";
+import "./accessControl/AlgoPainterAccessControl.sol";
 import "./AlgoPainterToken.sol";
 
-import "./IAlgoPainterItem.sol";
+import "./interfaces/IAlgoPainterItem.sol";
 
 contract AlgoPainterGweiItem is
     IAlgoPainterItem,

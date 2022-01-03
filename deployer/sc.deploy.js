@@ -1,4 +1,4 @@
-const { mnemonic, rpcUrl, account, gasLimit, web3, contracts } = require("./settings.js");
+const { mnemonic, rpcUrl, account, gasLimit, web3, contractsAddress } = require("./settings.js");
 
 /*
   web3.utils.soliditySha3(
@@ -13,15 +13,16 @@ const AlgoPainterToken = require('../build/contracts/AlgoPainterToken.json');
 const AlgoPainterGweiItem = require('../build/contracts/AlgoPainterGweiItem.json');
 const AlgoPainterPersonalItem = require('../build/contracts/AlgoPainterPersonalItem.json');
 const AlgoPainterExpressionsItem = require('../build/contracts/AlgoPainterExpressionsItem.json');
-
+const AlgoPainterNFTCreators = require('../build/contracts/AlgoPainterNFTCreators.json');
 const AlgoPainterAuctionSystem = require('../build/contracts/AlgoPainterAuctionSystem.json');
-const AlgoPainterBidBackPirs = require('../build/contracts/AlgoPainterBidBackPirs.json');
-const AlgoPainterRewardsSystem = require('../build/contracts/AlgoPainterRewardsSystem.json');
+const AlgoPainterRewardsRates = require('../build/contracts/AlgoPainterRewardsRates.json');
+const AlgoPainterRewardsDistributor = require('../build/contracts/AlgoPainterRewardsDistributor.json');
 
-const deploy = async (abi, bytecode, args) => {
-  const contract = new web3.eth.Contract(abi);
-  const deployTx = contract.deploy({
-    data: bytecode,
+const deploy = async (contract, args) => {
+  const instance = new web3.eth.Contract(contract.abi);
+  instance.setProvider(web3.currentProvider);
+  const deployTx = instance.deploy({
+    data: contract.bytecode,
     arguments: args
   });
 
@@ -37,11 +38,28 @@ const deploy = async (abi, bytecode, args) => {
     mnemonic
   );
 
-  return await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
+  var dplyResult = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
+
+  console.log(contract.contractName, dplyResult);
+
+  return dplyResult;
 }
 
-//deploy(AlgoPainterToken.abi, AlgoPainterToken.bytecode, [ "AlgoPainter Token", "ALGOP" ]).then(result => console.log('AlgoPainterToken:', result));
-//deploy(AlgoPainterPersonalItem.abi, AlgoPainterPersonalItem.bytecode, [contracts.AlgoPainterToken, account]).then(result => console.log('AlgoPainterPersonalItem:', result));
-//deploy(AlgoPainterAuctionSystem.abi, AlgoPainterAuctionSystem.bytecode).then(result => console.log('AlgoPainterAuctionSystem:', result));
-//deploy(AlgoPainterBidBackPirs.abi, AlgoPainterBidBackPirs.bytecode).then(result => console.log('AlgoPainterBidBackPirs:', result));
-deploy(AlgoPainterRewardsSystem.abi, AlgoPainterRewardsSystem.bytecode).then(result => console.log('AlgoPainterRewardsSystem:', result));
+(async function(){
+  try {
+    //deploy(AlgoPainterToken.abi, AlgoPainterToken.bytecode, [ "AlgoPainter Token", "ALGOP" ]).then(result => console.log('AlgoPainterToken:', result));
+    //await deploy(AlgoPainterNFTCreators);
+    //await deploy(AlgoPainterAuctionSystem);
+    //await deploy(AlgoPainterRewardsRates);
+    //await deploy(AlgoPainterRewardsDistributor);
+    await deploy(AlgoPainterPersonalItem, [ 
+      contractsAddress.AlgoPainterToken, 
+      account, 
+      contractsAddress.AlgoPainterNFTCreators, 
+      contractsAddress.AlgoPainterRewardsRates 
+    ]);
+  } catch(e) {
+    console.error(e)
+  }
+})();
+

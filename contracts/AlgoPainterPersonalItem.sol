@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/token/ERC721/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./AlgoPainterAccessControl.sol";
+import "./accessControl/AlgoPainterAccessControl.sol";
 import "./AlgoPainterToken.sol";
 
-import "./IAlgoPainterItem.sol";
-import "./AlgoPainterBidBackPirs.sol";
+import "./interfaces/IAlgoPainterItem.sol";
+import "./interfaces/IAuctionRewardsRates.sol";
+import "./interfaces/IAlgoPainterNFTCreators.sol";
 
 contract AlgoPainterPersonalItem is
     IAlgoPainterItem,
@@ -37,36 +38,51 @@ contract AlgoPainterPersonalItem is
     );
 
     address devAddress;
-    address algoPainterBidBackPirsAddress;
     AlgoPainterToken algop;
+    IAlgoPainterNFTCreators nftCreators;
+    IAuctionRewardsRates algoPainterRewardsRates;
 
-    constructor(AlgoPainterToken _algop, address _devAddress) ERC721("Algo Painter Personal Item", "APPERI") {
+    constructor(
+        address algopAddress,
+        address nftCreatorsAddress,
+        address algoPainterRewardsRatesAddress,
+        address _devAddress
+    ) ERC721("Algo Painter Personal Item", "APPERI") {
         maxTokens = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-        algop = _algop;
+        algop = AlgoPainterToken(algopAddress);
+        nftCreators = IAlgoPainterNFTCreators(nftCreatorsAddress);
+        algoPainterRewardsRates = IAuctionRewardsRates(
+            algoPainterRewardsRatesAddress
+        );
         devAddress = _devAddress;
         mintAmount = 100 ether;
     }
 
-    function setMintAmount(uint256 amount) 
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setMintAmount(uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         mintAmount = amount;
     }
 
-    function setAlgoPainterBidBackPirsAddress(address _algoPainterBidBackPirs)
+    function setAlgoPainterNFTCreators(address _nftCreators)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        algoPainterBidBackPirsAddress = _algoPainterBidBackPirs;
+        nftCreators = IAlgoPainterNFTCreators(_nftCreators);
     }
 
-    function getAlgoPainterBidBackPirsAddress()
-        public
-        view
-        returns(address)
-    {
-        return algoPainterBidBackPirsAddress;
+    function getAlgoPainterNFTCreators() public view returns (address) {
+        return address(nftCreators);
+    }
+
+    function setAlgoPainterRewardsRatesAddress(
+        address algoPainterRewardsRatesAddress
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        algoPainterRewardsRates = IAuctionRewardsRates(
+            algoPainterRewardsRatesAddress
+        );
+    }
+
+    function getAlgoPainterRewardsRatesAddress() public view returns (address) {
+        return address(algoPainterRewardsRates);
     }
 
     function getName(uint256 _algoPainterId)
@@ -214,14 +230,12 @@ contract AlgoPainterPersonalItem is
         }
     }
 
-    function getTokenHashForAuction(uint256 tokenId) 
+    function getTokenHashForAuction(uint256 tokenId)
         public
         view
-        returns(bytes32)
+        returns (bytes32)
     {
-        return keccak256(
-            abi.encodePacked(bytes32(bytes20(address(this))), tokenId)
-        );
+        return keccak256(abi.encodePacked(address(this), tokenId));
     }
 
     function mint(
@@ -264,18 +278,14 @@ contract AlgoPainterPersonalItem is
 
         hashes[hash] = newItemId;
 
-        AlgoPainterBidBackPirs algoPainterBidBackPirs = AlgoPainterBidBackPirs(
-            algoPainterBidBackPirsAddress
-        );
+        bytes32 tokenCreatorRoyaltiesHash = getTokenHashForAuction(newItemId);
 
-        bytes32 tokenCreatorRoyaltiesHash = keccak256(
-            abi.encodePacked(bytes32(bytes20(address(this))), newItemId)
-        );
-        
-        algoPainterBidBackPirs.setCreatorRoyaltiesRate(
+        algoPainterRewardsRates.setCreatorRoyaltiesRate(
             tokenCreatorRoyaltiesHash,
             creatorPercentage
         );
+
+        nftCreators.setCreator(tokenCreatorRoyaltiesHash, msg.sender);
 
         emit NewPaint(newItemId, msg.sender, hash);
 

@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
-interface IAuctionSystemManager {
+interface IAuctionHook {
     function onAuctionCreated(
         uint256 auctionId,
-        address owner
+        address owner,
+        address nftAddress,
+        uint256 nftTokenId,
+        address tokenPriceAddress
     ) external;
 
     function onBid(
@@ -12,11 +15,10 @@ interface IAuctionSystemManager {
         address bidder,
         uint256 amount,
         uint256 feeAmount,
-        uint256 netAmount,
-        bool isOverriden
+        uint256 netAmount
     ) external;
 
-    function onWithdraw(
+    function onBidWithdraw(
         uint256 auctionId,
         address owner,
         uint256 amount
@@ -27,7 +29,8 @@ interface IAuctionSystemManager {
         address winner,
         uint256 bidAmount,
         uint256 feeAmount,
-        uint256 bidbackAmount,
+        uint256 creatorAmount,
+        uint256 rewardsAmount,
         uint256 netAmount
     ) external;
 

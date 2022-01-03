@@ -19,7 +19,8 @@
   },
   "scripts": {
     "build": "truffle build",
-    "test": "truffle test --show-events",
+    "test": "truffle test",
+    "test-events": "truffle test --show-events",
     "flattener": "truffle-flattener ./contracts/AlgoPainterAuctionSystem.sol > ./build/flattener/AlgoPainterAuctionSystem.sol"
   },
   "repository": {

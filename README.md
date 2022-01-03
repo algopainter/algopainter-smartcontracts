@@ -5,12 +5,14 @@ https://www.algopainter.art
 ## Deployed Contracts / Hash
 
 ### BSCTESTNET
-- AlgoPainterToken - [0x01a9188076f1231df2215f67b6a63231fe5e293e](https://testnet.bscscan.com/address/0x01a9188076f1231df2215f67b6a63231fe5e293e)
-- AlgoPainterGweiItem - [0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578](https://testnet.bscscan.com/address/0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578)
-- AlgoPainterExpressionsItem - [0xbe9cac059835236da5e91cd72688c43886b63419](https://testnet.bscscan.com/address/0xbe9cac059835236da5e91cd72688c43886b63419)
-- AlgoPainterAuctionSystem - [0x5c35a85636d691eacd66d3d2c8a0f57f3ea13530](https://testnet.bscscan.com/address/0x5c35a85636d691eacd66d3d2c8a0f57f3ea13530)
-- AlgoPainterBidBackPirs: [0x355528b5a623f9bd7e7c19d2fd883de78158e765](https://testnet.bscscan.com/address/0x355528b5a623f9bd7e7c19d2fd883de78158e765)
-- AlgoPainterRewardsSystem: [0x7279c3c7b02c7ea2d458114f60df8e5d1a57de29](https://testnet.bscscan.com/address/0x7279c3c7b02c7ea2d458114f60df8e5d1a57de29)
+  AlgoPainterToken: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
+  AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',
+  AlgoPainterExpressionsItem: '0xbe9cac059835236da5e91cd72688c43886b63419',
+  AlgoPainterPersonalItem: '0x1458b39262543cd76252174c8f4ad84601dd0604',
+  AlgoPainterAuctionSystem: '0x6795d070847db7fcd0a63fcf9532db1f78ce8f7d',
+  AlgoPainterRewardsRates: '0x53aac215874f18fd819a978a7b0c4268dc40891d',
+  AlgoPainterRewardsDistributor: '0xe8b0d7867cf5319df6c1251cacb346aa58267475',
+  AlgoPainterNFTCreators: '0x9f529cc68932bd816d49d5ba4d18f8e55dfd1f75'
 
 ### BSCMAINNET
 
