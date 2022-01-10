@@ -268,7 +268,7 @@ contract AlgoPainterAuctionSystem is
             )
         );
 
-        auctions[_tokenAddress][_tokenId] = auctionsInfo.length - 1;
+        auctions[_tokenAddress][_tokenId] = auctionsInfo.length.sub(1);
 
         rewardsRatesProvider.setBidbackRate(auctions[_tokenAddress][_tokenId], _bidbackRate);
 
@@ -357,7 +357,7 @@ contract AlgoPainterAuctionSystem is
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
         (, uint256 feeAmount) = getBidAmountInfo(_amount);
-        uint256 totalAmount = _amount + feeAmount;
+        uint256 totalAmount = _amount.add(feeAmount);
 
         require(
             tokenPrice.transferFrom(msg.sender, address(this), totalAmount),
@@ -370,9 +370,7 @@ contract AlgoPainterAuctionSystem is
         );
 
         if (auctionInfo.highestBid != 0) {
-            pendingReturns[_auctionId][
-                auctionInfo.highestBidder
-            ] = pendingReturns[_auctionId][auctionInfo.highestBidder] + auctionInfo.highestBid;
+            pendingReturns[_auctionId][auctionInfo.highestBidder] = pendingReturns[_auctionId][auctionInfo.highestBidder].add(auctionInfo.highestBid);
 
             emit PendingReturnsIncreased(
                 _auctionId,
@@ -440,8 +438,8 @@ contract AlgoPainterAuctionSystem is
         pure
         returns (uint256 netAmount, uint256 feeAmount)
     {
-        feeAmount = _amount * fee / ONE_HUNDRED_PERCENT;
-        netAmount = _amount - feeAmount;
+        feeAmount = _amount.mul(fee).div(ONE_HUNDRED_PERCENT);
+        netAmount = _amount.sub(feeAmount);
     }
 
     function getAuctionAmountInfo(uint256 _auctionId, uint256 _amount)
@@ -457,10 +455,10 @@ contract AlgoPainterAuctionSystem is
         uint256 rewardsRate = rewardsRatesProvider.getRewardsRate(_auctionId);
         uint256 creatorRate = rewardsRatesProvider.getCreatorRoyaltiesRate(_auctionId);
 
-        feeAmount = _amount * auctionFeeRate / ONE_HUNDRED_PERCENT;
-        creatorAmount = _amount * creatorRate / ONE_HUNDRED_PERCENT;
-        rewardsAmount = _amount * rewardsRate / ONE_HUNDRED_PERCENT;
-        netAmount = _amount - feeAmount - creatorAmount - rewardsAmount;
+        feeAmount = _amount.mul(auctionFeeRate).div(ONE_HUNDRED_PERCENT);
+        creatorAmount = _amount.mul(creatorRate).div(ONE_HUNDRED_PERCENT);
+        rewardsAmount = _amount.mul(rewardsRate).div(ONE_HUNDRED_PERCENT);
+        netAmount = _amount.sub(feeAmount).sub(creatorAmount).sub(rewardsAmount);
     }
 
     function getBidAmountInfo(uint256 _amount)

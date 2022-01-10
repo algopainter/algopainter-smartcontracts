@@ -1,6 +1,6 @@
 const sleep = require('sleep');
 
-contract.only('AlgoPainterRewardsDistributor', (accounts) => {
+contract('AlgoPainterRewardsDistributor', (accounts) => {
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');
   const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
   const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
@@ -58,7 +58,7 @@ contract.only('AlgoPainterRewardsDistributor', (accounts) => {
       gwei.address,
       1,
       web3.utils.toWei('100', 'ether'),
-      (now + 30).toString(),
+      (now + 60).toString(),
       algopToken.address,
       3000
     );
@@ -200,7 +200,7 @@ contract.only('AlgoPainterRewardsDistributor', (accounts) => {
   });
 
   it('Users can\'t stake or unstake bidback on an ended auction', async () => {
-    sleep.sleep(30);
+    sleep.sleep(60);
 
     const rewardsSystemBalance = await algopToken.balanceOf(rewardsDistributor.address);
     expect(rewardsSystemBalance.toString()).to.be.equal(web3.utils.toWei('400', 'ether'));

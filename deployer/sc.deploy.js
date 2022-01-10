@@ -48,10 +48,10 @@ const deploy = async (contract, args) => {
 (async function(){
   try {
     //deploy(AlgoPainterToken.abi, AlgoPainterToken.bytecode, [ "AlgoPainter Token", "ALGOP" ]).then(result => console.log('AlgoPainterToken:', result));
-    //await deploy(AlgoPainterNFTCreators);
-    //await deploy(AlgoPainterAuctionSystem, [ '1209600' ]);
-    //await deploy(AlgoPainterRewardsRates);
-    //await deploy(AlgoPainterRewardsDistributor, [ '1209600' ]);
+    // await deploy(AlgoPainterNFTCreators);
+    // await deploy(AlgoPainterAuctionSystem, [ '1209600' ]);
+    // await deploy(AlgoPainterRewardsRates);
+    // await deploy(AlgoPainterRewardsDistributor, [ '1209600' ]);
     // await deploy(AlgoPainterPersonalItem, [ 
     //   contractsAddress.AlgoPainterToken, 
     //   account, 

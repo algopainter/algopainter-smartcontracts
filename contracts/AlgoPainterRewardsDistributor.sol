@@ -2,6 +2,7 @@
 pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./AlgoPainterContractBase.sol";
 import "./interfaces/IAlgoPainterAuctionSystem.sol";
@@ -14,6 +15,8 @@ contract AlgoPainterRewardsDistributor is
     IAlgoPainterRewardsDistributor,
     IAuctionHook
 {
+    using SafeMath for uint256;
+
     uint256 constant ONE_HUNDRED_PERCENT = 10**4;
 
     IERC20 public stakeToken;
@@ -265,16 +268,10 @@ contract AlgoPainterRewardsDistributor is
             "FAIL_STAKE"
         );
 
-        totalBidbackStakes[auctionKey(auctionId)] =
-            totalBidbackStakes[auctionKey(auctionId)] +
-            amount;
-        bidbackStakes[auctionKey(auctionId)][msg.sender] =
-            bidbackStakes[auctionKey(auctionId)][msg.sender] +
-            amount;
+        totalBidbackStakes[auctionKey(auctionId)] = totalBidbackStakes[auctionKey(auctionId)].add(amount);
+        bidbackStakes[auctionKey(auctionId)][msg.sender] = bidbackStakes[auctionKey(auctionId)][msg.sender].add(amount);
 
-        if (
-            !bidbackUsersMapping[auctionKey(auctionId)][msg.sender]
-        ) {
+        if (!bidbackUsersMapping[auctionKey(auctionId)][msg.sender]) {
             bidbackUsers[auctionKey(auctionId)].push(msg.sender);
             bidbackUsersMapping[auctionKey(auctionId)][
                 msg.sender
@@ -291,9 +288,7 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function unstakeBidback(uint256 auctionId, uint256 amount) public {
-        require(
-            amount <=
-                bidbackStakes[auctionKey(auctionId)][msg.sender],
+        require(amount <= bidbackStakes[auctionKey(auctionId)][msg.sender],
             "UNSTAKE_TOO_MUCH"
         );
 
@@ -305,12 +300,8 @@ contract AlgoPainterRewardsDistributor is
 
         require(stakeToken.transfer(msg.sender, amount), "FAIL_UNSTAKE");
 
-        bidbackStakes[auctionKey(auctionId)][msg.sender] =
-            bidbackStakes[auctionKey(auctionId)][msg.sender] -
-            amount;
-        totalBidbackStakes[auctionKey(auctionId)] =
-            totalBidbackStakes[auctionKey(auctionId)] -
-            amount;
+        bidbackStakes[auctionKey(auctionId)][msg.sender] = bidbackStakes[auctionKey(auctionId)][msg.sender].sub(amount);
+        totalBidbackStakes[auctionKey(auctionId)] = totalBidbackStakes[auctionKey(auctionId)].sub(amount);
 
         computeBidbackPercentages(auctionId);
 
@@ -348,11 +339,10 @@ contract AlgoPainterRewardsDistributor is
         );
 
         totalPirsStakes[auctionKey(auctionId)] =
-            totalPirsStakes[auctionKey(auctionId)] +
-            amount;
+            totalPirsStakes[auctionKey(auctionId)].add(amount);
+
         pirsStakes[auctionKey(auctionId)][msg.sender] =
-            pirsStakes[auctionKey(auctionId)][msg.sender] +
-            amount;
+            pirsStakes[auctionKey(auctionId)][msg.sender].add(amount);
 
         if (!pirsUsersMapping[auctionKey(auctionId)][msg.sender]) {
             pirsUsers[auctionKey(auctionId)].push(msg.sender);
@@ -384,12 +374,8 @@ contract AlgoPainterRewardsDistributor is
 
         require(stakeToken.transfer(msg.sender, amount), "FAIL_UNSTAKE");
 
-        pirsStakes[auctionKey(auctionId)][msg.sender] =
-            pirsStakes[auctionKey(auctionId)][msg.sender] -
-            (amount);
-        totalPirsStakes[auctionKey(auctionId)] =
-            totalPirsStakes[auctionKey(auctionId)] -
-            (amount);
+        pirsStakes[auctionKey(auctionId)][msg.sender] = pirsStakes[auctionKey(auctionId)][msg.sender].sub(amount);
+        totalPirsStakes[auctionKey(auctionId)] = totalPirsStakes[auctionKey(auctionId)].sub(amount);
 
         computePirsPercentages(auctionId);
 
@@ -413,16 +399,9 @@ contract AlgoPainterRewardsDistributor is
                     userAddress
                 ] = 0;
             } else {
-                bidbackPercentages[auctionKey(auctionId)][
-                    userAddress
-                ] =
-                    (ONE_HUNDRED_PERCENT *
-                        (
-                            bidbackStakes[auctionKey(auctionId)][
-                                userAddress
-                            ]
-                        )) /
-                    (totalBidbackStakes[auctionKey(auctionId)]);
+                bidbackPercentages[auctionKey(auctionId)][userAddress] =
+                    (ONE_HUNDRED_PERCENT.mul(bidbackStakes[auctionKey(auctionId)][userAddress]))
+                                        .div(totalBidbackStakes[auctionKey(auctionId)]);
             }
         }
     }
@@ -433,25 +412,14 @@ contract AlgoPainterRewardsDistributor is
             i < pirsUsers[auctionKey(auctionId)].length;
             i++
         ) {
-            address userAddress = pirsUsers[auctionKey(auctionId)][
-                i
-            ];
+            address userAddress = pirsUsers[auctionKey(auctionId)][i];
 
             if (totalPirsStakes[auctionKey(auctionId)] == 0) {
-                pirsPercentages[auctionKey(auctionId)][
-                    userAddress
-                ] = 0;
+                pirsPercentages[auctionKey(auctionId)][userAddress] = 0;
             } else {
-                pirsPercentages[auctionKey(auctionId)][
-                    userAddress
-                ] =
-                    (ONE_HUNDRED_PERCENT *
-                        (
-                            pirsStakes[auctionKey(auctionId)][
-                                userAddress
-                            ]
-                        )) /
-                    (totalPirsStakes[auctionKey(auctionId)]);
+                pirsPercentages[auctionKey(auctionId)][userAddress] =
+                    (ONE_HUNDRED_PERCENT.mul(pirsStakes[auctionKey(auctionId)][userAddress]))
+                                        .div(totalPirsStakes[auctionKey(auctionId)]);
             }
         }
     }
@@ -516,9 +484,8 @@ contract AlgoPainterRewardsDistributor is
 
         uint256 bidbackTotalEarnings = (auctionRewardsAmount[auctionKey(auctionId)] * bidbackRate) / ONE_HUNDRED_PERCENT;
 
-        uint256 bidbackEarnings = (bidbackTotalEarnings *
-            bidbackPercentages[auctionKey(auctionId)][msg.sender]) /
-            ONE_HUNDRED_PERCENT;
+        uint256 bidbackEarnings = (bidbackTotalEarnings.mul(bidbackPercentages[auctionKey(auctionId)][msg.sender]))
+                                                       .div(ONE_HUNDRED_PERCENT);
 
         bidbackPercentages[auctionKey(auctionId)][msg.sender] = 0;
 
@@ -560,7 +527,6 @@ contract AlgoPainterRewardsDistributor is
             IERC20 tokenPriceAddress,
             IAlgoPainterAuctionSystem.AuctionState state,
             ,
-
         ) = auctionSystem.getAuctionInfo(auctionId);
 
         require(
@@ -573,11 +539,13 @@ contract AlgoPainterRewardsDistributor is
             rewardsRatesProvider.getPIRSRate(auctionId)
         );
 
-        uint256 pirsTotalEarnings = auctionRewardsAmount[auctionKey(auctionId)] * pirsRate / ONE_HUNDRED_PERCENT;
+        uint256 pirsTotalEarnings = auctionRewardsAmount[auctionKey(auctionId)]
+            .mul(pirsRate)
+            .div(ONE_HUNDRED_PERCENT);
 
         uint256 pirsEarnings = pirsTotalEarnings
-            * pirsPercentages[auctionKey(auctionId)][msg.sender]
-            / ONE_HUNDRED_PERCENT;
+            .mul(pirsPercentages[auctionKey(auctionId)][msg.sender])
+            .div(ONE_HUNDRED_PERCENT);
 
         pirsPercentages[auctionKey(auctionId)][msg.sender] = 0;
 
@@ -588,9 +556,7 @@ contract AlgoPainterRewardsDistributor is
             "FAIL_TRANSFER_PIRS"
         );
 
-        uint256 harvestAmount = pirsStakes[auctionKey(auctionId)][
-            msg.sender
-        ];
+        uint256 harvestAmount = pirsStakes[auctionKey(auctionId)][msg.sender];
         uint256 contractAmount = stakeToken.balanceOf(address(this));
 
         if (contractAmount < harvestAmount) harvestAmount = contractAmount;

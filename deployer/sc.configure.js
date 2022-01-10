@@ -55,8 +55,8 @@ const Configurator = function () {
     return {
       grantRoleAuctionTx: contractsAddress.AlgoPainterAuctionSystem,
       grantRolePersonalTx: contractsAddress.AlgoPainterPersonalItem,
-      setCreatorGweiTx: await nftCreators.getCreator(contractsAddress.AlgoPainterGweiItem, 0),
-      setCreatorExpressionTx: await nftCreators.getCreator(contractsAddress.AlgoPainterExpressionsItem, 0)
+      setCreatorGweiTx: await (nftCreators.getCreatorNotPayable(contractsAddress.AlgoPainterGweiItem, 0).call()),
+      setCreatorExpressionTx: await nftCreators.getCreatorNotPayable(contractsAddress.AlgoPainterExpressionsItem, 0).call()
     }
   }
 
@@ -178,9 +178,9 @@ const Configurator = function () {
       await this.sendTransaction(setRewardsRatesProviderAddressTx);
     }
     return {
-      setStakeToken: await rewardsDistributorSystemManager.getStakeToken().call(),
-      setAuctionSystemAddress: await rewardsDistributorSystemManager.getAuctionSystemAddress().call(),
-      setRewardsRatesProviderAddress: await rewardsDistributorSystemManager.getRewardsRatesProviderAddress().call()
+      setStakeToken: await rewardsDistributorSystemManager.stakeToken().call(),
+      setAuctionSystemAddress: await rewardsDistributorSystemManager.auctionSystem().call(),
+      setRewardsRatesProviderAddress: await rewardsDistributorSystemManager.rewardsRatesProvider().call()
     }
   }
 
@@ -308,16 +308,16 @@ const Configurator = function () {
 
 (async () => {
   try {
-    Configurator.write = false;
+    Configurator.write = true;
 
-    console.log(await Configurator.nftCreators());
-    console.log(await Configurator.personalItem());
-    console.log(await Configurator.auctionSystem());
-    console.log(await Configurator.rewardRatesSystem());
+    //console.log(await Configurator.nftCreators());
+    //console.log(await Configurator.personalItem());
+    //console.log(await Configurator.auctionSystem());
+    //console.log(await Configurator.rewardRatesSystem());
     console.log(await Configurator.rewardsDistributorSystem());
     console.log(await Configurator.reloadSettings());
 
-    console.log(contractsAddress);
+    //console.log(contractsAddress);
 
 
   } catch (error) {
