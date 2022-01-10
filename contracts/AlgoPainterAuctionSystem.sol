@@ -3,41 +3,38 @@ pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
-
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./accessControl/AlgoPainterSimpleAccessControl.sol";
+import "./AlgoPainterContractBase.sol";
 import "./interfaces/IAuctionHook.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterAuctionSystem.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
 
 contract AlgoPainterAuctionSystem is
+    AlgoPainterContractBase,
     IAlgoPainterAuctionSystem,
-    AlgoPainterSimpleAccessControl,
     ERC721Holder
 {
     using SafeMath for uint256;
-
-    uint256 private constant ONE_HUNDRED_PERCENT = 10**4;
-    bytes private DEFAULT_MESSAGE;
+    uint256 constant ONE_HUNDRED_PERCENT = 10**4;
 
     address addressFee;
     address rewardsSystemAddress;
     uint256 auctionFeeRate;
     uint256 bidFeeRate;
 
-    IAuctionHook private auctionHooker;
-    IAuctionRewardsRates private rewardsRatesProvider;
-    IAlgoPainterNFTCreators private nftCreators;
+    IAuctionHook auctionHooker;
+    IAuctionRewardsRates rewardsRatesProvider;
+    IAlgoPainterNFTCreators nftCreators;
 
-    mapping(uint256 => mapping(address => uint256)) private pendingReturns;
+    AuctionInfo[] auctionsInfo;
+    mapping(address => mapping(uint256 => uint256)) auctions;
 
-    AuctionInfo[] private auctionsInfo;
-    mapping(address => mapping(uint256 => uint256)) private auctions;
+    IERC20[] allowedTokens;
+    mapping(IERC20 => bool) allowedTokensMapping;
 
-    IERC20[] private allowedTokens;
-    mapping(IERC20 => bool) private allowedTokensMapping;
+    mapping(uint256 => mapping(address => uint256)) pendingReturns;
 
     event AuctionCreated(
         uint256 indexed auctionId,
@@ -87,6 +84,9 @@ contract AlgoPainterAuctionSystem is
         IERC20[] allowedTokens,
         address rewardsRatesProvider
     );
+
+    constructor(uint256 _emergencyTimeInterval) AlgoPainterContractBase(_emergencyTimeInterval) {
+    }
 
     function getNow() public view returns (uint256) {
         return block.timestamp;
@@ -174,48 +174,6 @@ contract AlgoPainterAuctionSystem is
         return address(nftCreators);
     }
 
-    function setFeeAddress(address _addressFee)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
-        addressFee = _addressFee;
-
-        emit AuctionSystemSetup(
-            addressFee,
-            rewardsSystemAddress,
-            auctionFeeRate,
-            bidFeeRate,
-            allowedTokens,
-            address(rewardsRatesProvider)
-        );
-    }
-
-    function setupFees(uint256 _auctionFeeRate, uint256 _bidFeeRate)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
-        require(
-            _auctionFeeRate <= ONE_HUNDRED_PERCENT,
-            "AlgoPainterAuctionSystem:INVALID_AUCTION_FEE"
-        );
-        require(
-            _bidFeeRate <= ONE_HUNDRED_PERCENT,
-            "AlgoPainterAuctionSystem:INVALID_BID_FEE"
-        );
-
-        auctionFeeRate = _auctionFeeRate;
-        bidFeeRate = _bidFeeRate;
-
-        emit AuctionSystemSetup(
-            addressFee,
-            rewardsSystemAddress,
-            auctionFeeRate,
-            bidFeeRate,
-            allowedTokens,
-            address(rewardsRatesProvider)
-        );
-    }
-
     function addAllowedToken(IERC20 _allowedToken)
         public
         onlyRole(CONFIGURATOR_ROLE)
@@ -233,7 +191,7 @@ contract AlgoPainterAuctionSystem is
         );
     }
 
-    function setauctionHook(
+    function setAuctionHook(
         IAuctionHook _auctionHook
     ) public onlyRole(CONFIGURATOR_ROLE) {
         auctionHooker = _auctionHook;
@@ -248,7 +206,7 @@ contract AlgoPainterAuctionSystem is
         );
     }
 
-    function setrewardsRates(
+    function setRewardsRates(
         IAuctionRewardsRates _rewardsRates
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         rewardsRatesProvider = _rewardsRates;
@@ -263,6 +221,29 @@ contract AlgoPainterAuctionSystem is
         IERC20 _tokenPriceAddress,
         uint256 _bidbackRate
     ) public returns (uint256) {
+        require(
+            _auctionEndTime > getNow(),
+            "INVALID_TIME_STAMP"
+        );
+
+        require(
+            allowedTokensMapping[_tokenPriceAddress],
+            "INVALID_TOKEN_PRICE_ADDRESS"
+        );
+
+        bool nftPIRSRate = rewardsRatesProvider.hasPIRSRateSetPerImage(_tokenAddress, _tokenId);
+
+        require(nftPIRSRate,
+            "PIRS_NOT_SET"
+        );
+
+        address creator = nftCreators.getCreator(_tokenAddress, _tokenId);
+
+        require(
+            creator != address(0),
+            "CANNOT_CREATE_AUCTION_WITHOUT_NFT_CREATOR_SET"
+        );
+
         transferNFT(
             msg.sender,
             address(this),
@@ -270,16 +251,6 @@ contract AlgoPainterAuctionSystem is
             _tokenId,
             _tokenType,
             true
-        );
-
-        require(
-            _auctionEndTime > getNow(),
-            "AlgoPainterAuctionSystem:INVALID_TIME_STAMP"
-        );
-
-        require(
-            allowedTokensMapping[_tokenPriceAddress],
-            "AlgoPainterAuctionSystem:INVALID_TOKEN_PRICE_ADDRESS"
         );
 
         auctionsInfo.push(
@@ -297,7 +268,9 @@ contract AlgoPainterAuctionSystem is
             )
         );
 
-        auctions[_tokenAddress][_tokenId] = auctionsInfo.length.sub(1);
+        auctions[_tokenAddress][_tokenId] = auctionsInfo.length - 1;
+
+        rewardsRatesProvider.setBidbackRate(auctions[_tokenAddress][_tokenId], _bidbackRate);
 
         auctionHooker.onAuctionCreated(
             auctions[_tokenAddress][_tokenId],
@@ -316,15 +289,6 @@ contract AlgoPainterAuctionSystem is
             _auctionEndTime,
             _tokenPriceAddress
         );
-
-        rewardsRatesProvider.setBidbackRate(auctions[_tokenAddress][_tokenId], _bidbackRate);
-
-        bytes32 creatorKey = nftCreators.getHashKey(_tokenAddress, _tokenId);
-        address creator = nftCreators.getCreator(creatorKey);
-
-        if (creator == address(0)) {
-            nftCreators.setCreator(creatorKey, msg.sender);
-        }
 
         return auctions[_tokenAddress][_tokenId];
     }
@@ -377,40 +341,38 @@ contract AlgoPainterAuctionSystem is
 
         require(
             getNow() <= auctionInfo.auctionEndTime,
-            "AlgoPainterAuctionSystem:AUCTION_EXPIRED"
+            "AUCTION_EXPIRED"
         );
 
         require(
             _amount > auctionInfo.highestBid,
-            "AlgoPainterAuctionSystem:LOW_BID"
+            "LOW_BID"
         );
 
         require(
             _amount >= auctionInfo.minimumAmount,
-            "AlgoPainterAuctionSystem:LOW_BID_MINIMUM_AMOUNT"
+            "LOW_BID_MINIMUM_AMOUNT"
         );
 
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
         (, uint256 feeAmount) = getBidAmountInfo(_amount);
-        uint256 totalAmount = _amount.add(feeAmount);
+        uint256 totalAmount = _amount + feeAmount;
 
         require(
             tokenPrice.transferFrom(msg.sender, address(this), totalAmount),
-            "AlgoPainterAuctionSystem:FAIL_TO_TRANSFER_BID_AMOUNT"
+            "FAIL_TO_TRANSFER_BID_AMOUNT"
         );
 
         require(
             tokenPrice.transfer(addressFee, feeAmount),
-            "AlgoPainterAuctionSystem:FAIL_TO_TRANSFER_FEE_AMOUNT"
+            "FAIL_TO_TRANSFER_FEE_AMOUNT"
         );
 
         if (auctionInfo.highestBid != 0) {
             pendingReturns[_auctionId][
                 auctionInfo.highestBidder
-            ] = pendingReturns[_auctionId][auctionInfo.highestBidder].add(
-                auctionInfo.highestBid
-            );
+            ] = pendingReturns[_auctionId][auctionInfo.highestBidder] + auctionInfo.highestBid;
 
             emit PendingReturnsIncreased(
                 _auctionId,
@@ -453,7 +415,7 @@ contract AlgoPainterAuctionSystem is
 
         uint256 amount = pendingReturns[_auctionId][msg.sender];
 
-        require(amount > 0, "AlgoPainterAuctionSystem:NOTHING_TO_WITHDRAW");
+        require(amount > 0, "NOTHING_TO_WITHDRAW");
 
         pendingReturns[_auctionId][msg.sender] = 0;
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
@@ -465,8 +427,10 @@ contract AlgoPainterAuctionSystem is
 
         require(
             tokenPrice.transfer(msg.sender, amount),
-            "AlgoPainterAuctionSystem:FAIL_TO_WITHDRAW"
+            "FAIL_TO_WITHDRAW"
         );
+
+        auctionHooker.onBidWithdraw(_auctionId, msg.sender, amount);
 
         emit PendingReturnsWithdrawn(_auctionId, msg.sender, amount);
     }
@@ -476,8 +440,8 @@ contract AlgoPainterAuctionSystem is
         pure
         returns (uint256 netAmount, uint256 feeAmount)
     {
-        feeAmount = _amount.mul(fee).div(ONE_HUNDRED_PERCENT);
-        netAmount = _amount.sub(feeAmount);
+        feeAmount = _amount * fee / ONE_HUNDRED_PERCENT;
+        netAmount = _amount - feeAmount;
     }
 
     function getAuctionAmountInfo(uint256 _auctionId, uint256 _amount)
@@ -490,17 +454,13 @@ contract AlgoPainterAuctionSystem is
             uint256 rewardsAmount
         )
     {
-        IAuctionRewardsRates rewardsTotalRatesProvider = IAuctionRewardsRates(
-                rewardsRatesProvider
-            );
+        uint256 rewardsRate = rewardsRatesProvider.getRewardsRate(_auctionId);
+        uint256 creatorRate = rewardsRatesProvider.getCreatorRoyaltiesRate(_auctionId);
 
-        uint256 rewardsRate = rewardsTotalRatesProvider.getRewardsRate(_auctionId);
-        uint256 creatorRate = rewardsTotalRatesProvider.getCreatorRoyaltiesRate(_auctionId);
-
-        feeAmount = _amount.mul(auctionFeeRate).div(ONE_HUNDRED_PERCENT);
-        creatorAmount = _amount.mul(creatorRate).div(ONE_HUNDRED_PERCENT);
-        rewardsAmount = _amount.mul(rewardsRate).div(ONE_HUNDRED_PERCENT);
-        netAmount = _amount.sub(feeAmount).sub(creatorAmount).sub(rewardsAmount);
+        feeAmount = _amount * auctionFeeRate / ONE_HUNDRED_PERCENT;
+        creatorAmount = _amount * creatorRate / ONE_HUNDRED_PERCENT;
+        rewardsAmount = _amount * rewardsRate / ONE_HUNDRED_PERCENT;
+        netAmount = _amount - feeAmount - creatorAmount - rewardsAmount;
     }
 
     function getBidAmountInfo(uint256 _amount)
@@ -517,12 +477,12 @@ contract AlgoPainterAuctionSystem is
 
         require(
             getNow() >= auctionInfo.auctionEndTime,
-            "AlgoPainterAuctionSystem:AUCTION_STILL_RUNNING"
+            "AUCTION_STILL_RUNNING"
         );
 
         require(
             auctionInfo.state == AuctionState.Running,
-            "AlgoPainterAuctionSystem:ALREADY_ENDED"
+            "ALREADY_ENDED"
         );
 
         address winner = auctionInfo.highestBidder;
@@ -535,26 +495,21 @@ contract AlgoPainterAuctionSystem is
             uint256 rewardsAmount
         ) = getAuctionAmountInfo(_auctionId, bidAmount);
 
-        bytes32 creatorKey = nftCreators.getHashKey(auctionInfo.tokenAddress, auctionInfo.tokenId);
-        address creator = nftCreators.getCreator(creatorKey);
-
-        require(
-            creator != address(0),
-            "AlgoPainterRewardsDistributor:NFT_CREATOR_HAS_NOT_BEEN_FOUND"
-        );
+        address creator = nftCreators.getCreator(auctionInfo.tokenAddress, auctionInfo.tokenId);
 
         require(
             tokenPrice.transfer(creator, creatorAmount),
-            "AlgoPainterRewardsDistributor:UNABLE_TO_COMPLETE_TRANSFER_TO_CREATOR"
+            "FAIL_TO_PAY_CREATOR"
         );
+
         require(
             tokenPrice.transfer(rewardsSystemAddress, rewardsAmount),
-            "AlgoPainterAuctionSystem:FAIL_TO_PAY_REWARDS_SYSTEM"
+            "FAIL_TO_PAY_REWARDS_SYSTEM"
         );
 
         require(
             tokenPrice.transfer(auctionInfo.beneficiary, netAmount),
-            "AlgoPainterAuctionSystem:FAIL_TO_PAY_BENEFICIARY"
+            "FAIL_TO_PAY_AUCTION_WINNER"
         );
 
         if(tokenPrice.balanceOf(address(this)) < feeAmount)
@@ -562,7 +517,7 @@ contract AlgoPainterAuctionSystem is
 
         require(
             tokenPrice.transfer(addressFee, feeAmount),
-            "AlgoPainterAuctionSystem:FAIL_TO_PAY_DEVADDRESS"
+            "FAIL_TO_PAY_DEVADDRESS"
         );
 
         transferNFT(
@@ -581,7 +536,6 @@ contract AlgoPainterAuctionSystem is
             winner,
             bidAmount,
             feeAmount,
-            creatorAmount,
             rewardsAmount,
             netAmount
         );
@@ -593,18 +547,18 @@ contract AlgoPainterAuctionSystem is
         AuctionInfo storage auctionInfo = auctionsInfo[_auctionId];
 
         require(
-            auctionInfo.state != AuctionState.Running,
-            "AlgoPainterAuctionSystem:ALREADY_ENDED"
+            msg.sender == auctionInfo.beneficiary,
+            "NOT_AUCTION_OWNER"
+        );
+
+        require(
+            auctionInfo.state == AuctionState.Running,
+            "AUCTION_IS_NOT_RUNNING"
         );
 
         require(
             auctionInfo.highestBid == 0,
-            "AlgoPainterAuctionSystem:ALREADY_HAS_BIDS"
-        );
-
-        require(
-            msg.sender == auctionInfo.beneficiary,
-            "AlgoPainterAuctionSystem:NOT_AUCTION_OWNER"
+            "ALREADY_HAS_BIDS"
         );
 
         transferNFT(
@@ -637,7 +591,7 @@ contract AlgoPainterAuctionSystem is
             if (checkApproved) {
                 require(
                     token.isApprovedForAll(from, to),
-                    "AlgoPainterAuctionSystem:ERC721_NOT_APPROVED"
+                    "ERC721_NOT_APPROVED"
                 );
             }
 
@@ -650,11 +604,10 @@ contract AlgoPainterAuctionSystem is
     //Chaos recovery methods
     function emergencyCancelAuction(uint256 _auctionId)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        inEmergencyUser()
     {
         AuctionInfo storage auctionInfo = auctionsInfo[_auctionId];
 
-        //@ASK - Should we transfer the NFT back to its owner since this is a emergency?
         transferNFT(
             address(this),
             auctionInfo.beneficiary,
@@ -668,5 +621,23 @@ contract AlgoPainterAuctionSystem is
         auctionHooker.onAuctionCancelled(_auctionId, msg.sender);
 
         emit AuctionCancelled(_auctionId, msg.sender);
+    }
+
+    function emergencyTransfer(address tokenAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        inEmergencyOwner()
+    {
+        address payable self = payable(address(this));
+
+        if (tokenAddress == address(0)) {
+            payable(msg.sender).transfer(self.balance);
+        } else {
+            IERC20 token = IERC20(tokenAddress);
+            uint256 contractTokenBalance = token.balanceOf(self);
+            if(contractTokenBalance > 0) {
+                token.transferFrom(self, msg.sender, contractTokenBalance);
+            }
+        }
     }
 }

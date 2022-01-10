@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.7.4;
+pragma solidity >=0.6.0;
 
 import "./interfaces/IAlgoPainterNFTCreators.sol";
 import "./accessControl/AlgoPainterSimpleAccessControl.sol";
@@ -8,14 +8,36 @@ contract AlgoPainterNFTCreators is
     IAlgoPainterNFTCreators,
     AlgoPainterSimpleAccessControl
 {
-    mapping(bytes32 => address) creators;
+    mapping(bytes32 => address) private creators;
 
-    function getCreatorNotPayable(bytes32 hashKey)
+    function getCreatorNotPayable(address nftAddress, uint256 token)
         public
         view
         override
         returns (address)
     {
+        bytes32 hashKey = getHashKey(nftAddress);
+        if (creators[hashKey] != address(0)) {
+            return creators[hashKey];
+        }
+        hashKey = getHashKey(nftAddress, token);
+        return creators[hashKey];
+    }
+
+    function getCreator(address nftAddress, uint256 token)
+        public
+        payable
+        override
+        returns (address)
+    {
+        bytes32 hashKey = getHashKey(nftAddress);
+
+        //If the creator is set on whole collection returns it
+        if (creators[hashKey] != address(0)) {
+            return creators[hashKey];
+        }
+
+        hashKey = getHashKey(nftAddress, token);
         return creators[hashKey];
     }
 
@@ -28,19 +50,7 @@ contract AlgoPainterNFTCreators is
         return creators[hashKey];
     }
 
-    function setCreatorByCreator(bytes32 hashKey, address creator)
-        public
-    {
-        require(
-            msg.sender == creators[hashKey],
-            "AlgoPainterItemsCreators:ONLY_CREATOR_CAN_SET_CREATORS"
-        );
-        creators[hashKey] = creator;
-    }
-
-    function setCreatorByCreator(address nftAddress, address creator)
-        public
-    {
+    function setCreatorByCreator(address nftAddress, address creator) public {
         bytes32 hashKey = getHashKey(nftAddress);
 
         require(
@@ -66,27 +76,34 @@ contract AlgoPainterNFTCreators is
         creators[getHashKey(nftAddress, token)] = creator;
     }
 
-    function setCreator(bytes32 hashKey, address creator)
+    function setCreator(address nftAddress, address creator)
         public
         override
         onlyRole(CONFIGURATOR_ROLE)
     {
-        creators[hashKey] = creator;
-    }
+        bytes32 hashKey = getHashKey(nftAddress);
 
-    function setCreator(address nftAddress, address creator)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
-        creators[getHashKey(nftAddress)] = creator;
+        require(
+           creators[hashKey] == address(0),
+           "AlgoPainterItemsCreators:ONLY_CREATOR_CAN_SET_CREATORS" 
+        );
+
+        creators[hashKey] = creator;
     }
 
     function setCreator(
         address nftAddress,
         uint256 token,
         address creator
-    ) public onlyRole(CONFIGURATOR_ROLE) {
-        creators[getHashKey(nftAddress, token)] = creator;
+    ) public override onlyRole(CONFIGURATOR_ROLE) {
+        bytes32 hashKey = getHashKey(nftAddress, token);
+
+        require(
+           creators[hashKey] == address(0),
+           "AlgoPainterItemsCreators:ONLY_CREATOR_CAN_SET_CREATORS" 
+        );
+
+        creators[hashKey] = creator;
     }
 
     function getHashKey(address nftAddress)

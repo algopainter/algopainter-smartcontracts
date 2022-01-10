@@ -4,9 +4,26 @@ pragma solidity >=0.6.0;
 interface IAlgoPainterNFTCreators {
     function getCreator(bytes32 hashKey) external payable returns (address);
 
-    function getCreatorNotPayable(bytes32 hashKey) external view returns (address);
+    function getCreator(address nftAddress, uint256 token)
+        external
+        payable
+        returns (address);
 
-    function setCreator(bytes32 hashKey, address creator) external;
+    function getCreatorNotPayable(address nftAddress, uint256 token)
+        external
+        view
+        returns (address);
+
+    function setCreator(
+        address nftAddress,
+        address creator
+    ) external;
+
+    function setCreator(
+        address nftAddress,
+        uint256 token,
+        address creator
+    ) external;
 
     function getHashKey(address nftAddress, uint256 token)
         external

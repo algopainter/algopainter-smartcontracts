@@ -10,6 +10,12 @@ const blockExplorer = process.env.BLOCKEXPLORER;
 const gasLimit = 10000000;
 const web3 = new Web3Class(rpcUrl);
 
+const accounts = {
+  dev: account,
+  gweiCreator: process.env.GWEI_ACCOUNT,
+  expressionsCreator: process.env.EXPRESSIONS_ACCOUNT,
+}
+
 module.exports = {
   mongourl,
   mnemonic,
@@ -19,6 +25,7 @@ module.exports = {
   account,
   gasLimit,
   web3,
+  accounts,
   contractsAddress : {
     AlgoPainterToken: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
     AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',

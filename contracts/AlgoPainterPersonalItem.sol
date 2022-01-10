@@ -4,7 +4,6 @@ pragma solidity >=0.6.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./accessControl/AlgoPainterAccessControl.sol";
 import "./AlgoPainterToken.sol";
@@ -19,7 +18,6 @@ contract AlgoPainterPersonalItem is
     ERC721,
     ERC721Burnable
 {
-    using SafeMath for uint256;
     using Counters for Counters.Counter;
 
     bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
@@ -285,7 +283,7 @@ contract AlgoPainterPersonalItem is
             creatorPercentage
         );
 
-        nftCreators.setCreator(tokenCreatorRoyaltiesHash, msg.sender);
+        nftCreators.setCreator(address(this), newItemId, msg.sender);
 
         emit NewPaint(newItemId, msg.sender, hash);
 

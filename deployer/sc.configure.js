@@ -1,4 +1,4 @@
-const { mongourl, chainID, blockExplorer, mnemonic, rpcUrl, account, gasLimit, web3, contractsAddress } = require("./settings.js");
+const { mongourl, chainID, blockExplorer, mnemonic, rpcUrl, account, gasLimit, web3, accounts, contractsAddress } = require("./settings.js");
 
 const AlgoPainterAuctionSystem = require('../build/contracts/AlgoPainterAuctionSystem.json');
 const AlgoPainterRewardsRates = require('../build/contracts/AlgoPainterRewardsRates.json');
@@ -38,15 +38,25 @@ const Configurator = function () {
     const nftCreators = new web3.eth.Contract(AlgoPainterNFTCreators.abi, contractsAddress.AlgoPainterNFTCreators).methods;
     if (this.write) {
       const grantRoleAuctionTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterAuctionSystem);
+      const grantRoleRewardsDistributorTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterRewardsDistributor);
+      const grantRoleRewardsRatesTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterRewardsRates);
       const grantRolePersonalTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
+      const setCreatorGweiTx = nftCreators.setCreator(contractsAddress.AlgoPainterGweiItem, accounts.gweiCreator);
+      const setCreatorExpressionTx = nftCreators.setCreator(contractsAddress.AlgoPainterExpressionsItem, accounts.expressionsCreator);
 
       await this.sendTransaction(grantRoleAuctionTx);
       await this.sendTransaction(grantRolePersonalTx);
+      await this.sendTransaction(setCreatorGweiTx);
+      await this.sendTransaction(setCreatorExpressionTx);
+      await this.sendTransaction(grantRoleRewardsDistributorTx);
+      await this.sendTransaction(grantRoleRewardsRatesTx);
     }
 
     return {
       grantRoleAuctionTx: contractsAddress.AlgoPainterAuctionSystem,
-      grantRolePersonalTx: contractsAddress.AlgoPainterPersonalItem
+      grantRolePersonalTx: contractsAddress.AlgoPainterPersonalItem,
+      setCreatorGweiTx: await nftCreators.getCreator(contractsAddress.AlgoPainterGweiItem, 0),
+      setCreatorExpressionTx: await nftCreators.getCreator(contractsAddress.AlgoPainterExpressionsItem, 0)
     }
   }
 
@@ -59,10 +69,8 @@ const Configurator = function () {
 
     if (this.write) {
       const approveAuctionSystemTx = personal.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
-      const setBidBackPirsContractTx = personal.setAlgoPainterRewardsRatesAddress(contractsAddress.AlgoPainterRewardsRates);
 
       await this.sendTransaction(approveAuctionSystemTx);
-      await this.sendTransaction(setBidBackPirsContractTx);
     }
 
     return {
@@ -115,7 +123,7 @@ const Configurator = function () {
 
   this.rewardRatesSystem = async () => {
     console.log('=====================================================================================');
-    console.log('Configuring BidBack PIRS');
+    console.log('Configuring Rewards Rates');
     console.log('=====================================================================================');
 
     const rewardRates = new web3.eth.Contract(AlgoPainterRewardsRates.abi, contractsAddress.AlgoPainterRewardsRates).methods;
@@ -129,6 +137,7 @@ const Configurator = function () {
       const setCreatorRoyaltiesRateTx = rewardRates.setCreatorRoyaltiesRate(contractsAddress.AlgoPainterGweiItem, 500);
       const setCreatorRoyaltiesRateTx2 = rewardRates.setCreatorRoyaltiesRate(contractsAddress.AlgoPainterExpressionsItem, 500);
       const setMaxBidbackRateTx = rewardRates.setMaxBidbackRate(3000);
+      const setAuctionDistributoAddressTx = rewardRates.setAuctionDistributorAddress(contractsAddress.AlgoPainterRewardsDistributor);
 
       await this.sendTransaction(grantRoleAuctionTx);
       await this.sendTransaction(grantRolePersonalItemTx);
@@ -138,9 +147,11 @@ const Configurator = function () {
       await this.sendTransaction(setCreatorRoyaltiesRateTx2);
       await this.sendTransaction(setMaxPIRSRateTx);
       await this.sendTransaction(setMaxBidbackRateTx);
+      await this.sendTransaction(setAuctionDistributoAddressTx);
     }
     return {
       grantRoleAuctionTx: contractsAddress.AlgoPainterAuctionSystem,
+      setAuctionDistributoAddressTx: await rewardRates.getAuctionDistributorAddress().call(),
       setMaxCreatorRoyaltiesRate: await rewardRates.getMaxCreatorRoyaltiesRate().call(),
       setCreatorRoyaltiesRateGwei: await rewardRates.getCreatorRoyaltiesByTokenAddress(contractsAddress.AlgoPainterGweiItem).call(),
       setCreatorRoyaltiesRateExpressions: await rewardRates.getCreatorRoyaltiesByTokenAddress(contractsAddress.AlgoPainterExpressionsItem).call(),
@@ -299,14 +310,15 @@ const Configurator = function () {
   try {
     Configurator.write = false;
 
+    console.log(await Configurator.nftCreators());
+    console.log(await Configurator.personalItem());
+    console.log(await Configurator.auctionSystem());
+    console.log(await Configurator.rewardRatesSystem());
+    console.log(await Configurator.rewardsDistributorSystem());
+    console.log(await Configurator.reloadSettings());
+
     console.log(contractsAddress);
 
-    // console.log(await Configurator.nftCreators());
-    // console.log(await Configurator.personalItem());
-    // console.log(await Configurator.auctionSystem());
-    // console.log(await Configurator.rewardRatesSystem());
-    // console.log(await Configurator.rewardsDistributorSystem());
-    // console.log(await Configurator.reloadSettings());
 
   } catch (error) {
     console.error(error);

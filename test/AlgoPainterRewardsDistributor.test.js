@@ -1,13 +1,13 @@
-const AlgoPainterToken = artifacts.require('AlgoPainterToken');
-const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
-const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
-const AlgoPainterRewardsDistributor = artifacts.require('AlgoPainterRewardsDistributor');
-const AuctionRewardsRatesProviderMOCK = artifacts.require('AuctionRewardsRatesMOCK');
-const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
-
 const sleep = require('sleep');
 
-contract('AlgoPainterRewardsDistributor', (accounts) => {
+contract.only('AlgoPainterRewardsDistributor', (accounts) => {
+  const AlgoPainterToken = artifacts.require('AlgoPainterToken');
+  const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
+  const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
+  const AlgoPainterRewardsDistributor = artifacts.require('AlgoPainterRewardsDistributor');
+  const AuctionRewardsRatesProviderMOCK = artifacts.require('AuctionRewardsRatesMOCK');
+  const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
+
   const AUCTION_FEE_ACCOUNT = accounts[9];
   const GWEI_OWNER_ACCOUNT = accounts[8];
 
@@ -21,8 +21,8 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
   it('Setup auction and rewards system', async () => {
     algopToken = await AlgoPainterToken.new('ALGOP', 'ALGOP');
     gwei = await AlgoPainterGweiItem.new(algopToken.address, GWEI_OWNER_ACCOUNT);
-    auctionSystem = await AlgoPainterAuctionSystem.new();
-    rewardsDistributor = await AlgoPainterRewardsDistributor.new();
+    auctionSystem = await AlgoPainterAuctionSystem.new('1209600');
+    rewardsDistributor = await AlgoPainterRewardsDistributor.new('1209600');
     rewardsRatesMOCK = await AuctionRewardsRatesProviderMOCK.new();
     nftCreators = await AlgoPainterNFTCreators.new();
 
@@ -44,26 +44,12 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
     await algopToken.transfer(accounts[1], baseAmount);
     await algopToken.transfer(accounts[2], baseAmount);
     await algopToken.transfer(accounts[3], baseAmount);
+
+    await nftCreators.setCreator(gwei.address, accounts[7]);
   });
 
   it('Only setup contract can call rewards system', async () => {
     const now = parseInt((await auctionSystem.getNow()).toString());
-
-    try {
-      await auctionSystem.createAuction(
-        0,
-        gwei.address,
-        1,
-        web3.utils.toWei('100', 'ether'),
-        (now + 30).toString(),
-        algopToken.address,
-        3000
-      );
-
-      throw {};
-    } catch (error) {
-      expect(error.reason).to.be.equal('AlgoPainterRewardsDistributor:INVALID_SENDER');
-    }
 
     await rewardsDistributor.setAllowedSender(auctionSystem.address);
 
@@ -84,7 +70,7 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
 
       throw {};
     } catch (error) {
-      expect(error.reason).to.be.equal('AlgoPainterRewardsDistributor:USER_NOT_A_BIDDER');
+      expect(error.reason).to.be.equal('USER_NOT_BIDDER');
     }
   });
 
@@ -187,14 +173,14 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
       await rewardsDistributor.claimBidback(0, { from: accounts[1] });
       throw {};
     } catch (error) {
-      expect(error.reason).to.be.equal('AlgoPainterRewardsDistributor:AUCTION_STILL_RUNNING');
+      expect(error.reason).to.be.equal('AUCTION_RUNNING');
     }
   });
 
   function toReadableObj(obj) {
     const newObj = {};
     Object.keys(obj).forEach(key => {
-      if(isNaN(key))
+      if (isNaN(key))
         newObj[key] = obj[key].toString();
     });
     return newObj;
@@ -202,9 +188,9 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
 
   it('Check Auction rewards before distribute', async () => {
     console.log('Gwei Address: ', gwei.address);
-    var hashKey = await nftCreators.getHashKey(gwei.address, 1);
+    var hashKey = await nftCreators.getHashKey(gwei.address);
     console.log('Creator HashKey: ', hashKey);
-    var nftCreator = await nftCreators.getCreatorNotPayable(hashKey);
+    var nftCreator = await nftCreators.getCreatorNotPayable(gwei.address, 1);
     console.log('Creator: ', nftCreator);
     console.log('Balance Of ' + nftCreator + ': ', (await algopToken.balanceOf(nftCreator)).toString());
     var auctionInfo = toReadableObj(await auctionSystem.getAuctionInfo(0));
@@ -218,17 +204,17 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
 
     const rewardsSystemBalance = await algopToken.balanceOf(rewardsDistributor.address);
     expect(rewardsSystemBalance.toString()).to.be.equal(web3.utils.toWei('400', 'ether'));
-    
+
     var hashKey = await nftCreators.getHashKey(gwei.address, 1);
-    var nftCreator = await nftCreators.getCreatorNotPayable(hashKey);
+    var nftCreator = await nftCreators.getCreatorNotPayable(gwei.address, 1);
     var creatorBalanceBeforeEnd = (await algopToken.balanceOf(nftCreator)).toString();
 
-    expect(creatorBalanceBeforeEnd).to.be.equal('96999700000000000000000000');
+    expect(creatorBalanceBeforeEnd).to.be.equal('0');
 
     await auctionSystem.endAuction(0);
 
     var creatorBalanceAfterEnd = (await algopToken.balanceOf(nftCreator)).toString();
-    expect(creatorBalanceAfterEnd).to.be.equal('96999800000000000000000000');
+    expect(creatorBalanceAfterEnd).to.be.equal('25000000000000000000');
 
     const rewardsSystemBalanceUpdated = await algopToken.balanceOf(rewardsDistributor.address);
     expect(rewardsSystemBalanceUpdated.toString()).to.be.equal(web3.utils.toWei('525', 'ether'));
@@ -238,14 +224,7 @@ contract('AlgoPainterRewardsDistributor', (accounts) => {
       await rewardsDistributor.stakeBidback(0, web3.utils.toWei('100', 'ether'), { from: accounts[1] });
       throw {};
     } catch (error) {
-      expect(error.reason).to.be.equal('AlgoPainterRewardsDistributor:AUCTION_ENDED');
-    }
-
-    try {
-      await rewardsDistributor.unstakeBidback(0, web3.utils.toWei('100', 'ether'), { from: accounts[2] });
-      throw {};
-    } catch (error) {
-      expect(error.reason).to.be.equal('AlgoPainterRewardsDistributor:AUCTION_ENDED');
+      expect(error.reason).to.be.equal('AUCTION_ENDED');
     }
   });
 

@@ -1,11 +1,11 @@
-const AlgoPainterToken = artifacts.require('AlgoPainterToken');
-const AlgoPainterPersonalItem = artifacts.require('AlgoPainterPersonalItem');
-const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
-const AuctionHookMOCK = artifacts.require('AuctionHookMOCK');
-const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
-const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
-
 contract('AlgoPainterPersonalItem', accounts => {
+  const AlgoPainterToken = artifacts.require('AlgoPainterToken');
+  const AlgoPainterPersonalItem = artifacts.require('AlgoPainterPersonalItem');
+  const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
+  const AuctionHookMOCK = artifacts.require('AuctionHookMOCK');
+  const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
+  const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
+
   let algop = null;
   let auction = null;
   let rewardRates = null;
@@ -26,7 +26,8 @@ contract('AlgoPainterPersonalItem', accounts => {
     await rewardRates.setMaxCreatorRoyaltiesRate(3000);
     await instance.setAlgoPainterRewardsRatesAddress(rewardRates.address);
     await instance.setApprovalForAll(auction.address, true);
-    await nftCreators.grantRole(await instance.CONFIGURATOR_ROLE(), instance.address);
+    await nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE(), instance.address);
+    await rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE(), instance.address);
   });
 
   it('should add account[1] as a validator', async () => {
@@ -64,7 +65,7 @@ contract('AlgoPainterPersonalItem', accounts => {
 
     //creating a validator signature
     const signature = await web3.eth.sign(hash, accounts[1]);
-    await instance.updateTokenURI(tokenId, tokenURI, signature, {from: owner});
+    await instance.updateTokenURI(tokenId, tokenURI, signature, { from: owner });
 
     const returnedTokenURI = await instance.tokenURI(1);
     expect(returnedTokenURI).to.be.equal('NEW_URI');
@@ -79,7 +80,7 @@ contract('AlgoPainterPersonalItem', accounts => {
 
     const signature = await web3.eth.sign(hash, accounts[3]);
     try {
-      await instance.updateTokenURI(1, tokenURI, signature, {from: owner});
+      await instance.updateTokenURI(1, tokenURI, signature, { from: owner });
       throw {};
     } catch (e) {
       expect(e.reason).to.be.equal('AlgoPainterPersonalItem:INVALID_VALIDATOR', 'fail to check failure');
@@ -94,7 +95,7 @@ contract('AlgoPainterPersonalItem', accounts => {
     const signature = '0x0';
 
     try {
-      await instance.updateTokenURI(tokenId, tokenURI, signature, {from: owner});
+      await instance.updateTokenURI(tokenId, tokenURI, signature, { from: owner });
       throw {};
     } catch (e) {
       expect(e.reason).to.be.equal('AlgoPainterPersonalItem:INVALID_SIGNATURE', 'fail to check failure');

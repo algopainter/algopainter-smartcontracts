@@ -29,7 +29,6 @@ interface IAuctionHook {
         address winner,
         uint256 bidAmount,
         uint256 feeAmount,
-        uint256 creatorAmount,
         uint256 rewardsAmount,
         uint256 netAmount
     ) external;

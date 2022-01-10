@@ -8,6 +8,10 @@ interface IAuctionRewardsRates {
 
     function getPIRSRate(uint256 _auctionId) external view returns (uint256);
 
+    function hasPIRSRateSetPerImage(address _tokenAddress, uint256 _tokenId)
+        external
+        view returns (bool);
+
     function setCreatorRoyaltiesRate(
         bytes32 _hashAddress,
         uint256 _creatorRoyaltiesRate

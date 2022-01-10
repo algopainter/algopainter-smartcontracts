@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-
 import "../../contracts/interfaces/IAuctionRewardsRates.sol";
 import "../../contracts/accessControl/AlgoPainterSimpleAccessControl.sol";
 
@@ -10,8 +8,6 @@ contract AuctionRewardsRatesMOCK is
     IAuctionRewardsRates,
     AlgoPainterSimpleAccessControl
 {
-    using SafeMath for uint256;
-
     mapping(uint256 => uint256) bidbackRate;
     mapping(bytes32 => uint256) creatorRate;
 
@@ -37,8 +33,7 @@ contract AuctionRewardsRatesMOCK is
         uint256 _auctionId
     ) override public view
      returns (uint256) {
-        return getBidbackRate(_auctionId) 
-            .add(getPIRSRate(_auctionId));
+        return getBidbackRate(_auctionId) + getPIRSRate(_auctionId);
     }
 
     function setCreatorRoyaltiesRate(
@@ -54,5 +49,14 @@ contract AuctionRewardsRatesMOCK is
         onlyRole(CONFIGURATOR_ROLE)
     {
         bidbackRate[_auctionId] = _bidbackRate;
+    }
+
+    function hasPIRSRateSetPerImage(address _tokenAddress, uint256 _tokenId)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return true;
     }
 }

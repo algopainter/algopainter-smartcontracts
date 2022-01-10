@@ -3,7 +3,6 @@ pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./accessControl/AlgoPainterAccessControl.sol";
 import "./AlgoPainterToken.sol";
@@ -19,7 +18,6 @@ contract AlgoPainterExpressionsItem is
     uint256 private constant ONE_HUNDRED_PERCENT = 10**4;
     uint256 private constant TEN_PERCENT = 10**3;
 
-    using SafeMath for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -103,9 +101,7 @@ contract AlgoPainterExpressionsItem is
     function getCurrentAmount(uint256 supply) public view returns (uint256) {
         uint256 amount = getCurrentAmountWithoutFee(supply);
 
-        amount = amount.mul(getServiceFee()).div(ONE_HUNDRED_PERCENT).add(
-            amount
-        );
+        amount = amount * getServiceFee() / ONE_HUNDRED_PERCENT + amount;
         return amount;
     }
 
@@ -277,12 +273,11 @@ contract AlgoPainterExpressionsItem is
         );
 
         uint256 amountWithoutFee = getCurrentAmountWithoutFee(totalSupply());
-        uint256 artistFee =
-            amountWithoutFee.mul(TEN_PERCENT).div(ONE_HUNDRED_PERCENT);
-        uint256 userFee = amount.sub(amountWithoutFee);
-        uint256 aristAmount = amountWithoutFee.sub(artistFee);
+        uint256 artistFee = amountWithoutFee * TEN_PERCENT / ONE_HUNDRED_PERCENT;
+        uint256 userFee = amount - amountWithoutFee;
+        uint256 aristAmount = amountWithoutFee - artistFee;
 
-        devAddress.transfer(userFee.add(artistFee));
+        devAddress.transfer((userFee + artistFee));
         artistAddress.transfer(aristAmount);
 
         _tokenIds.increment();
