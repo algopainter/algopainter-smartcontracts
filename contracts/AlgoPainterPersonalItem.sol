@@ -19,8 +19,8 @@ contract AlgoPainterPersonalItem is
     ERC721Burnable
 {
     using Counters for Counters.Counter;
+    bytes32 private constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
 
-    bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
     uint256 maxTokens;
     uint256 mintAmount;
     uint256 collectedMintAmount;

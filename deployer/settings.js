@@ -30,10 +30,10 @@ module.exports = {
     AlgoPainterToken: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
     AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',
     AlgoPainterExpressionsItem: '0xbe9cac059835236da5e91cd72688c43886b63419',
-    AlgoPainterPersonalItem: '0x75Ae22228130Ea23dFF1819a7c792Af0a8996956'.toLowerCase(),
-    AlgoPainterAuctionSystem: '0xEB15E3bBD845f9b11173d034E47158554876283a'.toLowerCase(),
-    AlgoPainterRewardsRates: '0x70C3Ed753B9cE007849953a32b2f0c9c8CBceF08'.toLowerCase(),
-    AlgoPainterRewardsDistributor: '0xE4bC1BC1C0d0E59FA5178AF14cCf6aCcEA35ABE0'.toLowerCase(),
-    AlgoPainterNFTCreators: '0xD3eEdeb21ED73e365E90e0FB9Bc6e591FCeA412D'.toLowerCase()
+    AlgoPainterPersonalItem: '0x3208b57B08671e6848ce4b660e41D2A7fD94D66B'.toLowerCase(),
+    AlgoPainterAuctionSystem: '0x2C6f0dACF0929a8ca6F625801eB7f7c32e4e4fba'.toLowerCase(),
+    AlgoPainterRewardsRates: '0x346b65C0fBD1E33E717D8Ae4e8328f4979F5330C'.toLowerCase(),
+    AlgoPainterRewardsDistributor: '0x18Dae96f4C11b0c08936F11B3875B245d1AC6A8a'.toLowerCase(),
+    AlgoPainterNFTCreators: '0x33E5D1319779d165744C03a0519D695Bf0beEc83'.toLowerCase()
   }
 }

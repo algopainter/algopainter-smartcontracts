@@ -52,12 +52,12 @@ const deploy = async (contract, args) => {
     // await deploy(AlgoPainterAuctionSystem, [ '1209600' ]);
     // await deploy(AlgoPainterRewardsRates);
     // await deploy(AlgoPainterRewardsDistributor, [ '1209600' ]);
-    // await deploy(AlgoPainterPersonalItem, [ 
-    //   contractsAddress.AlgoPainterToken, 
-    //   account, 
-    //   contractsAddress.AlgoPainterNFTCreators, 
-    //   contractsAddress.AlgoPainterRewardsRates 
-    // ]);
+    await deploy(AlgoPainterPersonalItem, [ 
+      contractsAddress.AlgoPainterToken, 
+      account, 
+      contractsAddress.AlgoPainterNFTCreators, 
+      contractsAddress.AlgoPainterRewardsRates 
+    ]);
   } catch(e) {
     console.error(e)
   }

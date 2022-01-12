@@ -121,6 +121,27 @@ const Configurator = function () {
     }
   }
 
+  this.auctionSystemAddToken = async () => {
+    console.log('=====================================================================================');
+    console.log('Adding Tokens to Auction System');
+    console.log('=====================================================================================');
+    const auction = new web3.eth.Contract(AlgoPainterAuctionSystem.abi, contractsAddress.AlgoPainterAuctionSystem).methods;
+
+    if (this.write) {
+      const addTokensBTCTx = auction.addAllowedToken("0x6ce8da28e2f864420840cf74474eff5fd80e65b8");
+      const addTokensBUSDTx = auction.addAllowedToken('0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee');
+      const addTokensDAITx = auction.addAllowedToken("0xec5dcb5dbf4b114c9d0f65bccab49ec54f6a0867");
+
+      await this.sendTransaction(addTokensBTCTx);
+      await this.sendTransaction(addTokensBUSDTx);
+      await this.sendTransaction(addTokensDAITx);
+    }
+
+    return {
+      addAllowedToken: await (auction.getAllowedTokens().call()),
+    }
+  }
+
   this.rewardRatesSystem = async () => {
     console.log('=====================================================================================');
     console.log('Configuring Rewards Rates');
@@ -310,12 +331,13 @@ const Configurator = function () {
   try {
     Configurator.write = true;
 
-    //console.log(await Configurator.nftCreators());
-    //console.log(await Configurator.personalItem());
-    //console.log(await Configurator.auctionSystem());
-    //console.log(await Configurator.rewardRatesSystem());
-    console.log(await Configurator.rewardsDistributorSystem());
-    console.log(await Configurator.reloadSettings());
+    // console.log(await Configurator.nftCreators());
+    // console.log(await Configurator.personalItem());
+    // console.log(await Configurator.auctionSystem());
+    console.log(await Configurator.auctionSystemAddToken());
+    // console.log(await Configurator.rewardRatesSystem());
+    // console.log(await Configurator.rewardsDistributorSystem());
+    // console.log(await Configurator.reloadSettings());
 
     //console.log(contractsAddress);
 

@@ -16,7 +16,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
     nftCreators = await AlgoPainterNFTCreators.new();
     rewardRates = await AlgoPainterRewardsRates.new();
-    auction = await AlgoPainterAuctionSystem.new();
+    auction = await AlgoPainterAuctionSystem.new('1209600');
     auctionHook = await AuctionHookMOCK.new();
     instance = await AlgoPainterPersonalItem.new(algop.address, nftCreators.address, rewardRates.address, accounts[9]);
 
@@ -44,7 +44,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
     algop.transfer(owner, amount, { from: accounts[0] });
     await algop.approve(instance.address, amount, { from: owner });
 
-    await instance.mint('new text', '0xa2b445f459650c4c6a137f24cda570068149b25b8e203f242ba728274ef5b945', 400, 'https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ', { from: owner });
+    await instance.mint('mouse', '0xf1be2b4d52e8d3f4ad91afbba597a59fac5bf234031758e0af99ff875be1a13b', 800, 'https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ', { from: owner });
     const returnedTokenURI = await instance.tokenURI(1);
 
     expect(returnedTokenURI).to.be.equal('https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ');
@@ -52,7 +52,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
 
     expect((await instance.getCollectedTokenAmount(2)).toString()).to.be.equal('100000000000000000000');
     expect((await instance.getTokenAmountToBurn(2)).toString()).to.be.equal('50000000000000000000');
-    expect((await rewardRates.getCreatorRoyaltiesByTokenAddress(await instance.getTokenHashForAuction(1))).toString()).to.be.equal('400');
+    expect((await rewardRates.getCreatorRoyaltiesByTokenAddress(await instance.getTokenHashForAuction(1))).toString()).to.be.equal('800');
   });
 
   it('should update a token URI based on a valid signature', async () => {

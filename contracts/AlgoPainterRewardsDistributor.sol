@@ -63,7 +63,8 @@ contract AlgoPainterRewardsDistributor is
 
     constructor(uint256 _emergencyTimeInterval)
         AlgoPainterContractBase(_emergencyTimeInterval)
-    {}
+    {
+    }
 
     function auctionKey(uint256 auctionId) private view returns (bytes32){
         return keccak256(abi.encodePacked(address(auctionSystem), auctionId));
@@ -174,12 +175,13 @@ contract AlgoPainterRewardsDistributor is
     ) external override {
         require(msg.sender == allowedSender, "INVALID_SENDER");
 
-        removeUserFromBidback(auctionId, owner);
+        bidbackUsersMapping[auctionKey(auctionId)][owner] = false;
         auctionUsersWithBids[auctionKey(auctionId)][owner] = false;
 
         if (bidbackStakes[auctionKey(auctionId)][owner] > 0) {
-            unstakeBidback(
+            unstakeBidBackFromAccount(
                 auctionId,
+                owner,
                 bidbackStakes[auctionKey(auctionId)][owner]
             );
         }
@@ -220,21 +222,6 @@ contract AlgoPainterRewardsDistributor is
         //     msg.sender == allowedSender,
         //     "INVALID_SENDER"
         // );
-    }
-
-    function removeUserFromBidback(uint256 auctionId, address user) private {
-        bidbackUsersMapping[auctionKey(auctionId)][user] = false;
-
-        for (
-            uint256 i = 0;
-            i < bidbackUsers[auctionKey(auctionId)].length;
-            i++
-        ) {
-            if (bidbackUsers[auctionKey(auctionId)][i] == user) {
-                delete bidbackUsers[auctionKey(auctionId)][i];
-                break;
-            }
-        }
     }
 
     function stakeBidback(uint256 auctionId, uint256 amount) external {
@@ -287,8 +274,10 @@ contract AlgoPainterRewardsDistributor is
         );
     }
 
-    function unstakeBidback(uint256 auctionId, uint256 amount) public {
-        require(amount <= bidbackStakes[auctionKey(auctionId)][msg.sender],
+    function unstakeBidBackFromAccount(uint256 auctionId, address account, uint256 amount) private {
+        require(amount > 0, "CANNOT_UNSTAKE_ZERO");
+
+        require(amount <= bidbackStakes[auctionKey(auctionId)][account],
             "UNSTAKE_TOO_MUCH"
         );
 
@@ -298,18 +287,22 @@ contract AlgoPainterRewardsDistributor is
             amount = currentStakeBalance;
         }
 
-        require(stakeToken.transfer(msg.sender, amount), "FAIL_UNSTAKE");
+        require(stakeToken.transfer(account, amount), "FAIL_UNSTAKE");
 
-        bidbackStakes[auctionKey(auctionId)][msg.sender] = bidbackStakes[auctionKey(auctionId)][msg.sender].sub(amount);
+        bidbackStakes[auctionKey(auctionId)][account] = bidbackStakes[auctionKey(auctionId)][account].sub(amount);
         totalBidbackStakes[auctionKey(auctionId)] = totalBidbackStakes[auctionKey(auctionId)].sub(amount);
 
         computeBidbackPercentages(auctionId);
 
         emit BidbackUnstaked(
             auctionId,
-            msg.sender,
-            bidbackStakes[auctionKey(auctionId)][msg.sender]
+            account,
+            bidbackStakes[auctionKey(auctionId)][account]
         );
+    }
+
+    function unstakeBidback(uint256 auctionId, uint256 amount) public {
+        unstakeBidBackFromAccount(auctionId, msg.sender, amount);
     }
 
     function stakePirs(uint256 auctionId, uint256 amount) external {
@@ -361,6 +354,8 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function unstakePirs(uint256 auctionId, uint256 amount) external {
+        require(amount > 0, "CANNOT_UNSTAKE_ZERO");
+
         require(
             amount <= pirsStakes[auctionKey(auctionId)][msg.sender],
             "UNSTAKE_HIGH"
@@ -440,7 +435,7 @@ contract AlgoPainterRewardsDistributor is
         override
         returns (bool)
     {
-        return pirsUsers[auctionKey(auctionId)].length > 0;
+        return totalPirsStakes[auctionKey(auctionId)] > 0;
     }
 
     function hasBidbackStakes(uint256 auctionId)
@@ -449,7 +444,7 @@ contract AlgoPainterRewardsDistributor is
         override
         returns (bool)
     {
-        return bidbackUsers[auctionKey(auctionId)].length > 0;
+        return totalBidbackStakes[auctionKey(auctionId)] > 0;
     }
 
     function claimBidback(uint256 auctionId) external {

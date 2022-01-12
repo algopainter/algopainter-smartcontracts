@@ -161,21 +161,19 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         await contracts.AuctionSystem.bid(auctionId, web3.utils.toWei('1000', 'ether'), { from: USER_THREE });
 
         await contracts.RewardsDistributor.stakePirs(auctionId, web3.utils.toWei('500', 'ether'), { from: USER_TWO });
+        await contracts.RewardsDistributor.stakeBidback(auctionId, web3.utils.toWei('500', 'ether'), { from: USER_TWO });
 
         sleep.sleep(15);
 
-        await contracts.AuctionSystem.endAuction(auctionId);
+        await contracts.AuctionSystem.withdraw(auctionId, { from: USER_TWO });
 
+        await contracts.AuctionSystem.endAuction(auctionId);
         await contracts.RewardsDistributor.claimPirs(auctionId, { from: USER_TWO });
 
         await assertBalance(USER_ONE, web3.utils.toWei('10625', 'ether'));
-        await assertBalance(USER_TWO, web3.utils.toWei('9437.5', 'ether'));
+        await assertBalance(USER_TWO, web3.utils.toWei('9937.5', 'ether'));
         await assertBalance(USER_THREE, web3.utils.toWei('8562.5', 'ether'));
         await assertBalance(USER_FOUR, web3.utils.toWei('9750', 'ether'));
         await assertBalance(GWEI_CREATOR, web3.utils.toWei('150', 'ether'));
-
-        await contracts.AuctionSystem.withdraw(auctionId, { from: USER_TWO });
-
-        await assertBalance(USER_TWO, web3.utils.toWei('9937.5', 'ether'));
     });
 });
