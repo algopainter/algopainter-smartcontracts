@@ -1,4 +1,4 @@
-const { mnemonic, rpcUrl, account, gasLimit, web3, contractsAddress } = require("./settings.js");
+const { mnemonic, rpcUrl, account, gasLimit, web3, contractsAddress, emergencyInterval } = require("./settings.js");
 
 /*
   web3.utils.soliditySha3(
@@ -49,14 +49,13 @@ const deploy = async (contract, args) => {
   try {
     //deploy(AlgoPainterToken.abi, AlgoPainterToken.bytecode, [ "AlgoPainter Token", "ALGOP" ]).then(result => console.log('AlgoPainterToken:', result));
     // await deploy(AlgoPainterNFTCreators);
-    // await deploy(AlgoPainterAuctionSystem, [ '1209600' ]);
-    // await deploy(AlgoPainterRewardsRates);
-    // await deploy(AlgoPainterRewardsDistributor, [ '1209600' ]);
+    // await deploy(AlgoPainterAuctionSystem, [ emergencyInterval ]);
+    // await deploy(AlgoPainterRewardsRates, [ emergencyInterval ]);
+    // await deploy(AlgoPainterRewardsDistributor, [ emergencyInterval ]);
     await deploy(AlgoPainterPersonalItem, [ 
-      contractsAddress.AlgoPainterToken, 
-      account, 
       contractsAddress.AlgoPainterNFTCreators, 
-      contractsAddress.AlgoPainterRewardsRates 
+      contractsAddress.AlgoPainterRewardsRates,
+      account
     ]);
   } catch(e) {
     console.error(e)

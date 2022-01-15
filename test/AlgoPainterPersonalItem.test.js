@@ -18,7 +18,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
     rewardRates = await AlgoPainterRewardsRates.new();
     auction = await AlgoPainterAuctionSystem.new('1209600');
     auctionHook = await AuctionHookMOCK.new();
-    instance = await AlgoPainterPersonalItem.new(algop.address, nftCreators.address, rewardRates.address, accounts[9]);
+    instance = await AlgoPainterPersonalItem.new(nftCreators.address, rewardRates.address, accounts[9]);
 
     await auction.setup(accounts[9], auctionHook.address, 1000, 250, [algop.address], rewardRates.address);
 
@@ -26,6 +26,8 @@ contract.only('AlgoPainterPersonalItem', accounts => {
     await rewardRates.setMaxCreatorRoyaltiesRate(3000);
     await instance.setAlgoPainterRewardsRatesAddress(rewardRates.address);
     await instance.setApprovalForAll(auction.address, true);
+    await instance.setMintToken(algop.address);
+    await instance.setMintCostToken(web3.utils.toWei('100', 'ether'));
     await nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE(), instance.address);
     await rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE(), instance.address);
   });
@@ -40,18 +42,18 @@ contract.only('AlgoPainterPersonalItem', accounts => {
   it('should mint a new paint', async () => {
     const owner = accounts[2];
 
-    const amount = await instance.getCurrentAmount(2, await instance.totalSupply());
+    const amount = await instance.mintCostToken();
+    const amountEth = await instance.mintCost();
+    expect(amountEth.toString()).to.be.equal(web3.utils.toWei('0.1', 'ether'));
     algop.transfer(owner, amount, { from: accounts[0] });
     await algop.approve(instance.address, amount, { from: owner });
 
-    await instance.mint('mouse', '0xf1be2b4d52e8d3f4ad91afbba597a59fac5bf234031758e0af99ff875be1a13b', 800, 'https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ', { from: owner });
+    expect((await algop.balanceOf(owner)).toString()).to.be.equal(amount.toString());
+    await instance.mint('mouse', '0xf1be2b4d52e8d3f4ad91afbba597a59fac5bf234031758e0af99ff875be1a13b', 800, 'https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ', { value: amountEth, from: owner });
     const returnedTokenURI = await instance.tokenURI(1);
-
+    expect((await algop.balanceOf(owner)).toString()).to.be.equal('0');
     expect(returnedTokenURI).to.be.equal('https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ');
-    expect(await instance.getName(3)).to.be.equal('Personal Item by AlgoPainter');
-
-    expect((await instance.getCollectedTokenAmount(2)).toString()).to.be.equal('100000000000000000000');
-    expect((await instance.getTokenAmountToBurn(2)).toString()).to.be.equal('50000000000000000000');
+    expect(await instance.getName()).to.be.equal('Personal Item by AlgoPainter');
     expect((await rewardRates.getCreatorRoyaltiesByTokenAddress(await instance.getTokenHashForAuction(1))).toString()).to.be.equal('800');
   });
 
@@ -80,10 +82,10 @@ contract.only('AlgoPainterPersonalItem', accounts => {
 
     const signature = await web3.eth.sign(hash, accounts[3]);
     try {
-      await instance.updateTokenURI(1, tokenURI, signature, { from: owner });
+      await instance.updateTokenURI(tokenId, tokenURI, signature, { from: owner });
       throw {};
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterPersonalItem:INVALID_VALIDATOR', 'fail to check failure');
+      expect(e.reason).to.be.equal('INVALID_VALIDATOR', 'fail to check failure');
     }
   });
 
@@ -98,7 +100,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
       await instance.updateTokenURI(tokenId, tokenURI, signature, { from: owner });
       throw {};
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterPersonalItem:INVALID_SIGNATURE', 'fail to check failure');
+      expect(e.reason).to.be.equal('INVALID_SIGNATURE', 'fail to check failure');
     }
   });
 
@@ -112,7 +114,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
       await instance.updateTokenURI(tokenId, tokenURI, signature);
       throw {};
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterPersonalItem:INVALID_SENDER', 'fail to check failure');
+      expect(e.reason).to.be.equal('INVALID_SENDER', 'fail to check failure');
     }
   });
 });

@@ -66,15 +66,21 @@ const Configurator = function () {
     console.log('=====================================================================================');
 
     const personal = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contractsAddress.AlgoPainterPersonalItem).methods;
-
+    //const nftCreators = new web3.eth.Contract(AlgoPainterNFTCreators.abi, contractsAddress.AlgoPainterNFTCreators).methods;
+    //const rewardRates = new web3.eth.Contract(AlgoPainterRewardsRates.abi, contractsAddress.AlgoPainterRewardsRates).methods;
+    
     if (this.write) {
       const approveAuctionSystemTx = personal.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
+      //const grantRolePersonalTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
+      //const grantRolePersonalItemTx = rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
 
       await this.sendTransaction(approveAuctionSystemTx);
+      //await this.sendTransaction(grantRolePersonalTx);
+      //await this.sendTransaction(grantRolePersonalItemTx);
     }
 
     return {
-      setAlgoPainterRewardsRatesAddress: await (personal.getAlgoPainterRewardsRatesAddress().call()),
+      algoPainterRewardsRates: await (personal.algoPainterRewardsRates().call()),
     }
   }
 
@@ -332,14 +338,14 @@ const Configurator = function () {
     Configurator.write = true;
 
     // console.log(await Configurator.nftCreators());
-    // console.log(await Configurator.personalItem());
+    console.log(await Configurator.personalItem());
     // console.log(await Configurator.auctionSystem());
-    console.log(await Configurator.auctionSystemAddToken());
+    // console.log(await Configurator.auctionSystemAddToken());
     // console.log(await Configurator.rewardRatesSystem());
     // console.log(await Configurator.rewardsDistributorSystem());
-    // console.log(await Configurator.reloadSettings());
+    console.log(await Configurator.reloadSettings());
 
-    //console.log(contractsAddress);
+    console.log(contractsAddress);
 
 
   } catch (error) {

@@ -1,7 +1,7 @@
-const AlgoPainterToken = artifacts.require('AlgoPainterToken');
-const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
-
 contract('AlgoPainterGweiItem', accounts => {
+  const AlgoPainterToken = artifacts.require('AlgoPainterToken');
+  const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
+
   let algop = null;
   let instance = null;
 
@@ -105,7 +105,7 @@ contract('AlgoPainterGweiItem', accounts => {
       await instance.updateTokenURI(1, tokenURI, signature, {from: owner});
       throw {};
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterGweiItem:INVALID_VALIDATOR', 'fail to check failure');
+      expect(e.reason).to.be.equal('INVALID_VALIDATOR', 'fail to check failure');
     }
   });
 
@@ -120,7 +120,7 @@ contract('AlgoPainterGweiItem', accounts => {
       await instance.updateTokenURI(tokenId, tokenURI, signature, {from: owner});
       throw {};
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterGweiItem:INVALID_SIGNATURE', 'fail to check failure');
+      expect(e.reason).to.be.equal('INVALID_SIGNATURE', 'fail to check failure');
     }
   });
 
@@ -134,7 +134,7 @@ contract('AlgoPainterGweiItem', accounts => {
       await instance.updateTokenURI(tokenId, tokenURI, signature);
       throw {};
     } catch (e) {
-      expect(e.reason).to.be.equal('AlgoPainterGweiItem:INVALID_SENDER', 'fail to check failure');
+      expect(e.reason).to.be.equal('INVALID_SENDER', 'fail to check failure');
     }
   });
 

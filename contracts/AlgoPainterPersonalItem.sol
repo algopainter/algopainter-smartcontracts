@@ -1,63 +1,85 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./accessControl/AlgoPainterAccessControl.sol";
-import "./AlgoPainterToken.sol";
-
-import "./interfaces/IAlgoPainterItem.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
 
 contract AlgoPainterPersonalItem is
-    IAlgoPainterItem,
     AlgoPainterAccessControl,
     ERC721,
     ERC721Burnable
 {
-    using Counters for Counters.Counter;
     bytes32 private constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
 
-    uint256 maxTokens;
-    uint256 mintAmount;
-    uint256 collectedMintAmount;
+    using Counters for Counters.Counter;
+
+    uint256 public maxTokens;
+    uint256 public mintCost;
+    uint256 public mintCostToken;
 
     Counters.Counter private _tokenIds;
 
     mapping(bytes32 => uint256) hashes;
 
-    event NewPaint(
+    address payable public devAddress;
+    IERC20 public mintToken;
+    IAlgoPainterNFTCreators public nftCreators;
+    IAuctionRewardsRates public algoPainterRewardsRates;
+
+    event NewPersonalItem(
         uint256 indexed tokenId,
         address indexed owner,
         bytes32 indexed hash
     );
 
-    address devAddress;
-    AlgoPainterToken algop;
-    IAlgoPainterNFTCreators nftCreators;
-    IAuctionRewardsRates algoPainterRewardsRates;
-
     constructor(
-        address algopAddress,
         address nftCreatorsAddress,
-        address algoPainterRewardsRatesAddress,
+        address _rewardsRatesAddress,
         address _devAddress
     ) ERC721("Algo Painter Personal Item", "APPERI") {
         maxTokens = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-        algop = AlgoPainterToken(algopAddress);
         nftCreators = IAlgoPainterNFTCreators(nftCreatorsAddress);
-        algoPainterRewardsRates = IAuctionRewardsRates(
-            algoPainterRewardsRatesAddress
-        );
-        devAddress = _devAddress;
-        mintAmount = 100 ether;
+        algoPainterRewardsRates = IAuctionRewardsRates(_rewardsRatesAddress);
+        devAddress = payable(_devAddress);
+        mintCost = 0.1 ether;
     }
 
-    function setMintAmount(uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        mintAmount = amount;
+    function setMaxTokens(uint256 _maxTokens)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        maxTokens = _maxTokens;
+    }
+
+    function setMintCostToken(uint256 _cost)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        mintCostToken = _cost;
+    }
+
+    function setMintToken(address _address)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        mintToken = IERC20(_address);
+    }
+
+    function setDevAddress(address _devAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        devAddress = payable(_devAddress);
+    }
+
+    function setMintCost(uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        mintCost = amount;
     }
 
     function setAlgoPainterNFTCreators(address _nftCreators)
@@ -65,10 +87,6 @@ contract AlgoPainterPersonalItem is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         nftCreators = IAlgoPainterNFTCreators(_nftCreators);
-    }
-
-    function getAlgoPainterNFTCreators() public view returns (address) {
-        return address(nftCreators);
     }
 
     function setAlgoPainterRewardsRatesAddress(
@@ -79,104 +97,8 @@ contract AlgoPainterPersonalItem is
         );
     }
 
-    function getAlgoPainterRewardsRatesAddress() public view returns (address) {
-        return address(algoPainterRewardsRates);
-    }
-
-    function getName(uint256 _algoPainterId)
-        public
-        pure
-        override
-        returns (string memory)
-    {
-        require(_algoPainterId == 3, "AlgoPainterPersonalItem:INVALID_ID");
+    function getName() public pure returns (string memory) {
         return "Personal Item by AlgoPainter";
-    }
-
-    function setMaximumTokens(uint256 tokens)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
-        maxTokens = tokens;
-    }
-
-    function getCurrentAmount(uint256 _algoPainterId, uint256 _supply)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        require(_algoPainterId == 2, "AlgoPainterPersonalItem:INVALID_ID");
-        return mintAmount;
-    }
-
-    function getTokenBytes32ConfigParameter(
-        uint256 _algoPainterId,
-        uint256 _tokenId,
-        uint256 _parameter
-    ) public view override returns (bytes32) {
-        revert();
-    }
-
-    function getTokenUint256ConfigParameter(
-        uint256 _algoPainterId,
-        uint256 _tokenId,
-        uint256 _parameter
-    ) public view override returns (uint256) {
-        revert();
-    }
-
-    function getTokenStringConfigParameter(
-        uint256 _algoPainterId,
-        uint256 _tokenId,
-        uint256 _parameter
-    ) public view override returns (string memory) {
-        revert();
-    }
-
-    function getTokenBooleanConfigParameter(
-        uint256 _algoPainterId,
-        uint256 _tokenId,
-        uint256 _parameter
-    ) public view override returns (bool) {
-        revert();
-    }
-
-    function getPIRS(uint256 _algoPainterId, uint256 _tokenId)
-        public
-        pure
-        override
-        returns (uint256)
-    {
-        revert();
-    }
-
-    function getCollectedTokenAmount(uint256 _algoPainterId)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return collectedMintAmount;
-    }
-
-    function allowedTokens(uint256 _algoPainterId)
-        public
-        view
-        override
-        returns (address[] memory)
-    {
-        revert();
-    }
-
-    function getTokenAmountToBurn(uint256 _algoPainterId)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        require(_algoPainterId == 2, "AlgoPainterPersonalItem:INVALID_ID");
-        return collectedMintAmount == 0 ? 0 : collectedMintAmount / 2;
     }
 
     function hashTokenURI(uint256 _tokenId, string memory _tokenURI)
@@ -242,30 +164,33 @@ contract AlgoPainterPersonalItem is
         uint256 creatorPercentage,
         string memory tokenURI
     ) public payable returns (bytes32) {
-        require(
-            bytes(tokenURI).length > 0,
-            "AlgoPainterPersonalItem:TOKENURI_IS_REQUIRED"
-        );
+        require(bytes(tokenURI).length > 0, "TOKENURI_REQUIRED");
 
-        require(
-            bytes(name).length > 0,
-            "AlgoPainterPersonalItem:NAME_IS_REQUIRED"
-        );
+        require(bytes(name).length > 0, "NAME_REQUIRED");
 
-        bytes32 hash = keccak256(abi.encodePacked(name, imageHash));
+        bytes32 hashKey = keccak256(abi.encodePacked(name, imageHash));
 
-        require(
-            hashes[hash] == 0,
-            "AlgoPainterPersonalItem:ALREADY_REGISTERED"
-        );
+        require(hashes[hashKey] == 0, "ALREADY_MINTED");
 
-        require(
-            algop.allowance(msg.sender, address(this)) >= mintAmount,
-            "AlgoPainterGweiItem:MINIMUM_ALLOWANCE_REQUIRED"
-        );
+        require(totalSupply() + 1 < maxTokens, "MAXIMUM_AMOUNT_NFT_REACHED");
 
-        algop.transferFrom(msg.sender, devAddress, mintAmount);
-        collectedMintAmount += mintAmount;
+        if (address(mintToken) != address(0) && mintCostToken > 0) {
+            require(
+                mintToken.allowance(msg.sender, address(this)) >= mintCostToken,
+                "MINIMUM_ALLOWANCE_REQUIRED"
+            );
+
+            mintToken.transferFrom(msg.sender, devAddress, mintCostToken);
+        }
+
+        if (mintCost > 0) {
+            require(
+                msg.value >= mintCost,
+                "REQUIRED_AMOUNT_NOT_SENT"
+            );
+
+            devAddress.transfer(mintCost);
+        }
 
         _tokenIds.increment();
 
@@ -274,7 +199,7 @@ contract AlgoPainterPersonalItem is
         _mint(msg.sender, newItemId);
         _setTokenURI(newItemId, tokenURI);
 
-        hashes[hash] = newItemId;
+        hashes[hashKey] = newItemId;
 
         bytes32 tokenCreatorRoyaltiesHash = getTokenHashForAuction(newItemId);
 
@@ -285,9 +210,9 @@ contract AlgoPainterPersonalItem is
 
         nftCreators.setCreator(address(this), newItemId, msg.sender);
 
-        emit NewPaint(newItemId, msg.sender, hash);
+        emit NewPersonalItem(newItemId, msg.sender, hashKey);
 
-        return hash;
+        return hashKey;
     }
 
     function getTokenByHash(bytes32 hash) public view returns (uint256) {
@@ -303,19 +228,9 @@ contract AlgoPainterPersonalItem is
         address validator = recover(hash, _signature);
         address tokenOwner = ownerOf(_tokenId);
 
-        require(
-            tokenOwner == msg.sender,
-            "AlgoPainterPersonalItem:INVALID_SENDER"
-        );
-
-        require(
-            validator != address(0),
-            "AlgoPainterPersonalItem:INVALID_SIGNATURE"
-        );
-        require(
-            hasRole(VALIDATOR_ROLE, validator),
-            "AlgoPainterPersonalItem:INVALID_VALIDATOR"
-        );
+        require(tokenOwner == msg.sender, "INVALID_SENDER");
+        require(validator != address(0), "INVALID_SIGNATURE");
+        require(hasRole(VALIDATOR_ROLE, validator), "INVALID_VALIDATOR");
 
         _setTokenURI(_tokenId, _tokenURI);
     }

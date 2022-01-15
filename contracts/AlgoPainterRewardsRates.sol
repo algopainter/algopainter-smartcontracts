@@ -7,10 +7,11 @@ import "./accessControl/AlgoPainterSimpleAccessControl.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterAuctionSystem.sol";
 import "./interfaces/IAlgoPainterRewardsDistributor.sol";
+import "./AlgoPainterContractBase.sol";
 
 contract AlgoPainterRewardsRates is
-    IAuctionRewardsRates,
-    AlgoPainterSimpleAccessControl
+    AlgoPainterContractBase,
+    IAuctionRewardsRates
 {
     using SafeMath for uint256;
     event BidbackUpdated(uint256 _auctionId, uint256 _bidbackRate);
@@ -45,7 +46,7 @@ contract AlgoPainterRewardsRates is
 
     mapping(bytes32 => uint256) rates;
 
-    constructor() {
+    constructor(uint256 _emergencyTimeInterval) AlgoPainterContractBase(_emergencyTimeInterval) {
         canResetCreatorRate = false;
     }
 
@@ -264,5 +265,23 @@ contract AlgoPainterRewardsRates is
         }
 
         return taxes;
+    }
+
+    function emergencyTransfer(address tokenAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        inEmergencyOwner()
+    {
+        address payable self = payable(address(this));
+
+        if (tokenAddress == address(0)) {
+            payable(msg.sender).transfer(self.balance);
+        } else {
+            IERC20 token = IERC20(tokenAddress);
+            uint256 contractTokenBalance = token.balanceOf(self);
+            if(contractTokenBalance > 0) {
+                token.transferFrom(self, msg.sender, contractTokenBalance);
+            }
+        }
     }
 }

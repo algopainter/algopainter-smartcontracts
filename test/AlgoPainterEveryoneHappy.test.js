@@ -39,7 +39,7 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         contracts.ALGOP = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
         contracts.Gwei = await AlgoPainterGweiItem.new(contracts.ALGOP.address, GWEI_DEV);
         contracts.AuctionSystem = await AlgoPainterAuctionSystem.new('1209600');
-        contracts.RewardsRates = await AlgoPainterRewardsRates.new();
+        contracts.RewardsRates = await AlgoPainterRewardsRates.new('1209600');
         contracts.RewardsDistributor = await AlgoPainterRewardsDistributor.new('1209600');
         contracts.NFTCreators = await AlgoPainterNFTCreators.new();
 
