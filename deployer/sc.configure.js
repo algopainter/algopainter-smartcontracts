@@ -342,14 +342,14 @@ const Configurator = function () {
     Configurator.write = true;
 
     //console.log(await Configurator.nftCreators());
-    //console.log(await Configurator.personalItem());
-    //console.log(await Configurator.auctionSystem());
+    console.log(await Configurator.personalItem());
+    console.log(await Configurator.auctionSystem());
     console.log(await Configurator.auctionSystemAddToken());
     console.log(await Configurator.rewardRatesSystem());
     console.log(await Configurator.rewardsDistributorSystem());
-    
-    //console.log(await Configurator.reloadSettings());
-    //console.log(contractsAddress);
+    console.log(await Configurator.reloadSettings());
+    console.log(contractsAddress);
+
   } catch (error) {
     console.error(error);
   }

@@ -226,7 +226,7 @@ contract AlgoPainterAuctionSystem is
         require (getInEmncyState() == false, "NOT_AVAILABLE");
 
         require(
-            (_auctionEndTime + getTimeSafety()) > getNow(),
+            _auctionEndTime > getNow(),
             "INVALID_TIME_STAMP"
         );
 
