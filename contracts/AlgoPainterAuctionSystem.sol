@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
@@ -23,6 +23,8 @@ contract AlgoPainterAuctionSystem is
     address rewardsSystemAddress;
     uint256 auctionFeeRate;
     uint256 bidFeeRate;
+
+    uint256 MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     IAuctionHook auctionHooker;
     IAuctionRewardsRates rewardsRatesProvider;
@@ -221,8 +223,10 @@ contract AlgoPainterAuctionSystem is
         IERC20 _tokenPriceAddress,
         uint256 _bidbackRate
     ) public returns (uint256) {
+        require (getInEmncyState() == false, "NOT_AVAILABLE");
+
         require(
-            _auctionEndTime > getNow(),
+            (_auctionEndTime + getTimeSafety()) > getNow(),
             "INVALID_TIME_STAMP"
         );
 
@@ -337,10 +341,12 @@ contract AlgoPainterAuctionSystem is
     }
 
     function bid(uint256 _auctionId, uint256 _amount) public {
+        require (getInEmncyState() == false, "NOT_AVAILABLE");
+
         AuctionInfo storage auctionInfo = auctionsInfo[_auctionId];
 
         require(
-            getNow() <= auctionInfo.auctionEndTime,
+            getNow() <= (auctionInfo.auctionEndTime - getTimeSafety()),
             "AUCTION_EXPIRED"
         );
 
@@ -381,7 +387,6 @@ contract AlgoPainterAuctionSystem is
 
         auctionInfo.highestBidder = msg.sender;
         auctionInfo.highestBid = _amount;
-        auctionInfo.state = AuctionState.Running;
 
         auctionHooker.onBid(
             _auctionId,
@@ -410,12 +415,13 @@ contract AlgoPainterAuctionSystem is
 
     function withdraw(uint256 _auctionId) public {
         AuctionInfo storage auctionInfo = auctionsInfo[_auctionId];
-
+            
         uint256 amount = pendingReturns[_auctionId][msg.sender];
 
-        require(amount > 0, "NOTHING_TO_WITHDRAW");
-
         pendingReturns[_auctionId][msg.sender] = 0;
+
+        require(amount > 0 && amount < MAX_INT, "NOTHING_TO_WITHDRAW");
+
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
         //Cannot transfer more than the contract holds
@@ -426,7 +432,7 @@ contract AlgoPainterAuctionSystem is
         require(
             tokenPrice.transfer(msg.sender, amount),
             "FAIL_TO_WITHDRAW"
-        );
+        );      
 
         auctionHooker.onBidWithdraw(_auctionId, msg.sender, amount);
 
@@ -471,16 +477,24 @@ contract AlgoPainterAuctionSystem is
 
     function endAuction(uint256 _auctionId) public {
         AuctionInfo storage auctionInfo = auctionsInfo[_auctionId];
-        IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
-
-        require(
-            getNow() >= auctionInfo.auctionEndTime,
-            "AUCTION_STILL_RUNNING"
-        );
 
         require(
             auctionInfo.state == AuctionState.Running,
             "ALREADY_ENDED"
+        );
+
+        auctionInfo.state = AuctionState.Ended;
+
+        require(
+            msg.sender == auctionInfo.beneficiary || msg.sender == auctionInfo.highestBidder,
+            'ONLY_WINNER_OR_SELLER_CAN_END_AUCTION'
+        );
+
+        IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
+
+        require(
+            getNow() >= (auctionInfo.auctionEndTime + getTimeSafety()),
+            "AUCTION_STILL_RUNNING"
         );
 
         address winner = auctionInfo.highestBidder;
@@ -497,17 +511,17 @@ contract AlgoPainterAuctionSystem is
 
         require(
             tokenPrice.transfer(creator, creatorAmount),
-            "FAIL_TO_PAY_CREATOR"
+            "FAIL_PAY_CREATOR"
         );
 
         require(
             tokenPrice.transfer(rewardsSystemAddress, rewardsAmount),
-            "FAIL_TO_PAY_REWARDS_SYSTEM"
+            "FAIL_PAY_REWARDS_SYSTEM"
         );
 
         require(
             tokenPrice.transfer(auctionInfo.beneficiary, netAmount),
-            "FAIL_TO_PAY_AUCTION_WINNER"
+            "FAIL_PAY_AUCTION_WINNER"
         );
 
         if(tokenPrice.balanceOf(address(this)) < feeAmount)
@@ -515,7 +529,7 @@ contract AlgoPainterAuctionSystem is
 
         require(
             tokenPrice.transfer(addressFee, feeAmount),
-            "FAIL_TO_PAY_DEVADDRESS"
+            "FAIL_PAY_DEVADDRESS"
         );
 
         transferNFT(
@@ -526,8 +540,6 @@ contract AlgoPainterAuctionSystem is
             auctionInfo.tokenType,
             false
         );
-
-        auctionInfo.state = AuctionState.Ended;
 
         auctionHooker.onAuctionEnded(
             _auctionId,
@@ -554,6 +566,8 @@ contract AlgoPainterAuctionSystem is
             "AUCTION_IS_NOT_RUNNING"
         );
 
+        auctionInfo.state = AuctionState.Canceled;
+
         require(
             auctionInfo.highestBid == 0,
             "ALREADY_HAS_BIDS"
@@ -567,8 +581,6 @@ contract AlgoPainterAuctionSystem is
             auctionInfo.tokenType,
             false
         );
-
-        auctionInfo.state = AuctionState.Canceled;
 
         auctionHooker.onAuctionCancelled(_auctionId, msg.sender);
 
@@ -606,6 +618,18 @@ contract AlgoPainterAuctionSystem is
     {
         AuctionInfo storage auctionInfo = auctionsInfo[_auctionId];
 
+        require(
+            msg.sender == auctionInfo.beneficiary,
+            "NOT_AUCTION_OWNER"
+        );
+
+        require(
+            auctionInfo.state == AuctionState.Running,
+            "AUCTION_IS_NOT_RUNNING"
+        );
+
+        auctionInfo.state = AuctionState.Canceled;
+
         transferNFT(
             address(this),
             auctionInfo.beneficiary,
@@ -615,7 +639,8 @@ contract AlgoPainterAuctionSystem is
             false
         );
 
-        auctionInfo.state = AuctionState.Canceled;
+        //@TODO somar pending returns
+
         auctionHooker.onAuctionCancelled(_auctionId, msg.sender);
 
         emit AuctionCancelled(_auctionId, msg.sender);

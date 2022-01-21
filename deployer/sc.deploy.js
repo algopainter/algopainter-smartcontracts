@@ -40,7 +40,7 @@ const deploy = async (contract, args) => {
 
   var dplyResult = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
 
-  console.log(contract.contractName, dplyResult);
+  console.log(contract.contractName, { gasUsed: dplyResult.gasUsed, contractAddress: dplyResult.contractAddress });
 
   return dplyResult;
 }
@@ -48,14 +48,14 @@ const deploy = async (contract, args) => {
 (async function(){
   try {
     //deploy(AlgoPainterToken.abi, AlgoPainterToken.bytecode, [ "AlgoPainter Token", "ALGOP" ]).then(result => console.log('AlgoPainterToken:', result));
-    // await deploy(AlgoPainterNFTCreators);
-    // await deploy(AlgoPainterAuctionSystem, [ emergencyInterval ]);
-    // await deploy(AlgoPainterRewardsRates, [ emergencyInterval ]);
-    // await deploy(AlgoPainterRewardsDistributor, [ emergencyInterval ]);
+    await deploy(AlgoPainterNFTCreators);
+    await deploy(AlgoPainterAuctionSystem, [ emergencyInterval ]);
+    await deploy(AlgoPainterRewardsRates, [ emergencyInterval ]);
+    await deploy(AlgoPainterRewardsDistributor, [ emergencyInterval ]);
     await deploy(AlgoPainterPersonalItem, [ 
-      contractsAddress.AlgoPainterNFTCreators, 
-      contractsAddress.AlgoPainterRewardsRates,
-      account
+       contractsAddress.AlgoPainterNFTCreators, 
+       contractsAddress.AlgoPainterRewardsRates,
+       account
     ]);
   } catch(e) {
     console.error(e)

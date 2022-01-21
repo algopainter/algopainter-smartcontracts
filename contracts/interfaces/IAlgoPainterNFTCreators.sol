@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
 interface IAlgoPainterNFTCreators {
     function getCreator(bytes32 hashKey) external payable returns (address);

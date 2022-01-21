@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
 import "./interfaces/IAlgoPainterNFTCreators.sol";
 import "./accessControl/AlgoPainterSimpleAccessControl.sol";
@@ -50,7 +50,7 @@ contract AlgoPainterNFTCreators is
         return creators[hashKey];
     }
 
-    function setCreatorByCreator(address nftAddress, address creator) public {
+    function setCollectionCreatorByCreator(address nftAddress, address creator) public {
         bytes32 hashKey = getHashKey(nftAddress);
 
         require(
@@ -61,7 +61,7 @@ contract AlgoPainterNFTCreators is
         creators[hashKey] = creator;
     }
 
-    function setCreatorByCreator(
+    function setCollectionItemCreatorByCreator(
         address nftAddress,
         uint256 token,
         address creator

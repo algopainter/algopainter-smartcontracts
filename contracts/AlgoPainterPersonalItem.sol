@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -196,10 +196,10 @@ contract AlgoPainterPersonalItem is
 
         uint256 newItemId = _tokenIds.current();
 
+        hashes[hashKey] = newItemId;
+
         _mint(msg.sender, newItemId);
         _setTokenURI(newItemId, tokenURI);
-
-        hashes[hashKey] = newItemId;
 
         bytes32 tokenCreatorRoyaltiesHash = getTokenHashForAuction(newItemId);
 

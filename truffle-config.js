@@ -14,7 +14,7 @@ module.exports = {
    *
    * $ truffle test --network <network-name>
    */
-  plugins: ["truffle-contract-size"],
+  plugins: ["truffle-contract-size", "solidity-coverage"],
   networks: {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)

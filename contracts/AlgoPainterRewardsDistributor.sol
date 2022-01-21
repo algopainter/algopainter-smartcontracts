@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -18,6 +18,7 @@ contract AlgoPainterRewardsDistributor is
     using SafeMath for uint256;
 
     uint256 constant ONE_HUNDRED_PERCENT = 10**4;
+    uint256 MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     IERC20 public stakeToken;
     address public allowedSender;
@@ -225,6 +226,8 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function stakeBidback(uint256 auctionId, uint256 amount) external {
+        require (getInEmncyState() == false, "NOT_AVAILABLE");
+
         (
             ,
             ,
@@ -243,7 +246,7 @@ contract AlgoPainterRewardsDistributor is
             "AUCTION_ENDED"
         );
 
-        require(block.timestamp <= auctionEndTime, "AUCTION_EXPIRED");
+        require(block.timestamp <= (auctionEndTime - getTimeSafety()), "AUCTION_EXPIRED");
 
         require(
             auctionUsersWithBids[auctionKey(auctionId)][msg.sender],
@@ -274,13 +277,21 @@ contract AlgoPainterRewardsDistributor is
         );
     }
 
+    function unstakeBidback(uint256 auctionId, uint256 amount) public {
+        unstakeBidBackFromAccount(auctionId, msg.sender, amount);
+    }
+
     function unstakeBidBackFromAccount(uint256 auctionId, address account, uint256 amount) private {
-        require(amount > 0, "CANNOT_UNSTAKE_ZERO");
+        require(amount > 0 && amount < MAX_INT, "CANNOT_UNSTAKE_ZERO");
 
         require(amount <= bidbackStakes[auctionKey(auctionId)][account],
             "UNSTAKE_TOO_MUCH"
         );
 
+        bidbackStakes[auctionKey(auctionId)][account] = bidbackStakes[auctionKey(auctionId)][account].sub(amount);
+        totalBidbackStakes[auctionKey(auctionId)] = totalBidbackStakes[auctionKey(auctionId)].sub(amount);
+        computeBidbackPercentages(auctionId);
+        
         uint256 currentStakeBalance = stakeToken.balanceOf(address(this));
 
         if (currentStakeBalance < amount) {
@@ -289,11 +300,6 @@ contract AlgoPainterRewardsDistributor is
 
         require(stakeToken.transfer(account, amount), "FAIL_UNSTAKE");
 
-        bidbackStakes[auctionKey(auctionId)][account] = bidbackStakes[auctionKey(auctionId)][account].sub(amount);
-        totalBidbackStakes[auctionKey(auctionId)] = totalBidbackStakes[auctionKey(auctionId)].sub(amount);
-
-        computeBidbackPercentages(auctionId);
-
         emit BidbackUnstaked(
             auctionId,
             account,
@@ -301,11 +307,9 @@ contract AlgoPainterRewardsDistributor is
         );
     }
 
-    function unstakeBidback(uint256 auctionId, uint256 amount) public {
-        unstakeBidBackFromAccount(auctionId, msg.sender, amount);
-    }
-
     function stakePirs(uint256 auctionId, uint256 amount) external {
+        require (getInEmncyState() == false, "NOT_AVAILABLE");
+        
         (
             ,
             ,
@@ -319,7 +323,7 @@ contract AlgoPainterRewardsDistributor is
 
         ) = auctionSystem.getAuctionInfo(auctionId);
 
-        require(block.timestamp <= auctionEndTime, "AUCTION_ENDED");
+        require(block.timestamp <= (auctionEndTime - getTimeSafety()), "AUCTION_ENDED");
 
         require(
             oldOwnersUsersMapping[tokenAddress][tokenId][msg.sender],
@@ -354,12 +358,17 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function unstakePirs(uint256 auctionId, uint256 amount) external {
-        require(amount > 0, "CANNOT_UNSTAKE_ZERO");
+        require(amount > 0 && amount < MAX_INT, "CANNOT_UNSTAKE_ZERO");
 
         require(
             amount <= pirsStakes[auctionKey(auctionId)][msg.sender],
             "UNSTAKE_HIGH"
         );
+
+        pirsStakes[auctionKey(auctionId)][msg.sender] = pirsStakes[auctionKey(auctionId)][msg.sender].sub(amount);
+        totalPirsStakes[auctionKey(auctionId)] = totalPirsStakes[auctionKey(auctionId)].sub(amount);
+
+        computePirsPercentages(auctionId);
 
         uint256 currentStakeBalance = stakeToken.balanceOf(address(this));
 
@@ -368,11 +377,6 @@ contract AlgoPainterRewardsDistributor is
         }
 
         require(stakeToken.transfer(msg.sender, amount), "FAIL_UNSTAKE");
-
-        pirsStakes[auctionKey(auctionId)][msg.sender] = pirsStakes[auctionKey(auctionId)][msg.sender].sub(amount);
-        totalPirsStakes[auctionKey(auctionId)] = totalPirsStakes[auctionKey(auctionId)].sub(amount);
-
-        computePirsPercentages(auctionId);
 
         emit PIRSUnstaked(
             auctionId,
@@ -449,8 +453,7 @@ contract AlgoPainterRewardsDistributor is
 
     function claimBidback(uint256 auctionId) external {
         require(
-            bidbackPercentages[auctionKey(auctionId)][msg.sender] >
-                0,
+            bidbackPercentages[auctionKey(auctionId)][msg.sender] > 0,
             "NOTHING_TO_CLAIM"
         );
 
@@ -493,15 +496,17 @@ contract AlgoPainterRewardsDistributor is
 
         uint256 harvestAmount = bidbackStakes[auctionKey(auctionId)][msg.sender];
         uint256 contractAmount = stakeToken.balanceOf(address(this));
-
-        if (contractAmount < harvestAmount) harvestAmount = contractAmount;
+        
+        bidbackStakes[auctionKey(auctionId)][msg.sender] = 0;
+        
+        if (contractAmount < harvestAmount) {
+            harvestAmount = contractAmount;
+        }
 
         require(
             stakeToken.transfer(msg.sender, harvestAmount),
             "FAIL_TRANSFER_BIDBACK_WITHDRAW"
         );
-
-        bidbackStakes[auctionKey(auctionId)][msg.sender] = 0;
 
         emit BidbackClaimed(auctionId, msg.sender, bidbackEarnings);
     }
@@ -554,7 +559,9 @@ contract AlgoPainterRewardsDistributor is
         uint256 harvestAmount = pirsStakes[auctionKey(auctionId)][msg.sender];
         uint256 contractAmount = stakeToken.balanceOf(address(this));
 
-        if (contractAmount < harvestAmount) harvestAmount = contractAmount;
+        if (contractAmount < harvestAmount) {
+            harvestAmount = contractAmount;
+        }
 
         require(
             stakeToken.transfer(msg.sender, harvestAmount),

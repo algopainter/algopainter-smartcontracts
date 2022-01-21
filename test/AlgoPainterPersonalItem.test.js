@@ -1,4 +1,4 @@
-contract.only('AlgoPainterPersonalItem', accounts => {
+contract('AlgoPainterPersonalItem', accounts => {
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');
   const AlgoPainterPersonalItem = artifacts.require('AlgoPainterPersonalItem');
   const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
@@ -15,7 +15,7 @@ contract.only('AlgoPainterPersonalItem', accounts => {
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
     nftCreators = await AlgoPainterNFTCreators.new();
-    rewardRates = await AlgoPainterRewardsRates.new();
+    rewardRates = await AlgoPainterRewardsRates.new('1209600');
     auction = await AlgoPainterAuctionSystem.new('1209600');
     auctionHook = await AuctionHookMOCK.new();
     instance = await AlgoPainterPersonalItem.new(nftCreators.address, rewardRates.address, accounts[9]);

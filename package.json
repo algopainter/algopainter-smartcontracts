@@ -22,6 +22,7 @@
     "build": "truffle build",
     "test": "truffle test",
     "size": "truffle run contract-size",
+    "coverage": "truffle run coverage",
     "test-events": "truffle test --show-events",
     "flattener": "truffle-flattener ./contracts/AlgoPainterAuctionSystem.sol > ./build/flattener/AlgoPainterAuctionSystem.sol"
   },
@@ -35,5 +36,8 @@
   "bugs": {
     "url": "https://github.com/algopainter/algopainter-smartcontracts/issues"
   },
-  "homepage": "https://github.com/algopainter/algopainter-smartcontracts#readme"
+  "homepage": "https://github.com/algopainter/algopainter-smartcontracts#readme",
+  "devDependencies": {
+    "solidity-coverage": "^0.7.18"
+  }
 }

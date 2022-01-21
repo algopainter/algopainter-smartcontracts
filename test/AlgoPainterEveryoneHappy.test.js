@@ -1,5 +1,5 @@
 //This is a happy scenario testing no mocks
-contract('AlgoPainterEveryoneHappy', accounts => {
+contract.only('AlgoPainterEveryoneHappy', accounts => {
     const sleep = require('sleep');
     const AlgoPainterToken = artifacts.require('AlgoPainterToken');
     const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
@@ -108,7 +108,7 @@ contract('AlgoPainterEveryoneHappy', accounts => {
 
         sleep.sleep(10);
 
-        await contracts.AuctionSystem.endAuction(auctionId);
+        await contracts.AuctionSystem.endAuction(auctionId, { from: USER_ONE });
 
         await assertBalance(USER_ONE, web3.utils.toWei('10625', 'ether'));
         await assertBalance(USER_TWO, web3.utils.toWei('8975', 'ether'));
@@ -130,7 +130,7 @@ contract('AlgoPainterEveryoneHappy', accounts => {
 
         sleep.sleep(15);
 
-        await contracts.AuctionSystem.endAuction(auctionId);
+        await contracts.AuctionSystem.endAuction(auctionId, { from: USER_TWO });
 
         await assertBalance(USER_ONE, web3.utils.toWei('10625', 'ether'));
         await assertBalance(USER_THREE, web3.utils.toWei('8987.5', 'ether'));
@@ -167,7 +167,7 @@ contract('AlgoPainterEveryoneHappy', accounts => {
 
         await contracts.AuctionSystem.withdraw(auctionId, { from: USER_TWO });
 
-        await contracts.AuctionSystem.endAuction(auctionId);
+        await contracts.AuctionSystem.endAuction(auctionId, { from: USER_FOUR });
         await contracts.RewardsDistributor.claimPirs(auctionId, { from: USER_TWO });
 
         await assertBalance(USER_ONE, web3.utils.toWei('10625', 'ether'));

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
-import "../../contracts/interfaces/IAuctionRewardsRates.sol";
-import "../../contracts/accessControl/AlgoPainterSimpleAccessControl.sol";
+import "../interfaces/IAuctionRewardsRates.sol";
+import "../accessControl/AlgoPainterSimpleAccessControl.sol";
 
 contract AuctionRewardsRatesMOCK is
     IAuctionRewardsRates,
