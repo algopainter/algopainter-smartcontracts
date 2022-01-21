@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-v3
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -10,6 +10,8 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155Holder.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./AlgoPainterAuctionSystemAccessControl.sol";
+import "./IAuctionRewardsTotalRatesProvider.sol";
+import "./IAuctionSystemManager.sol";
 
 contract AlgoPainterAuctionSystem is
     AlgoPainterAuctionSystemAccessControl,
@@ -20,6 +22,9 @@ contract AlgoPainterAuctionSystem is
 
     uint256 private constant ONE_HUNDRED_PERCENT = 10**4;
     bytes private DEFAULT_MESSAGE;
+
+    IAuctionSystemManager private auctionSystemManager;
+    IAuctionRewardsTotalRatesProvider rewardsTotalRatesProviderAddress;
 
     mapping(uint256 => mapping(address => uint256)) private pendingReturns;
 
@@ -33,7 +38,6 @@ contract AlgoPainterAuctionSystem is
         uint256 minimumAmount;
         uint256 auctionEndTime;
         IERC20 tokenPriceAddress;
-        uint256 bidBackFee;
         bool ended;
         address highestBidder;
         uint256 highestBid;
@@ -45,12 +49,23 @@ contract AlgoPainterAuctionSystem is
     IERC20[] private allowedTokens;
     mapping(IERC20 => bool) private allowedTokensMapping;
 
+    event AuctionCreated(
+        uint256 indexed auctionId,
+        address creator,
+        address tokenAddress,
+        uint256 tokenId,
+        uint256 minimumAmount,
+        uint256 auctionEndTime,
+        IERC20 tokenPriceAddress
+    );
+
     event HighestBidIncreased(
         uint256 indexed auctionId,
         address bidder,
         uint256 amount,
         uint256 feeAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        bool isOverriden
     );
 
     event AuctionEnded(
@@ -61,15 +76,36 @@ contract AlgoPainterAuctionSystem is
         uint256 netAmount
     );
 
+    event AuctionCancelled(
+        uint256 auctionId,
+        address indexed owner
+    );
+
+    event PendingReturnsIncreased(
+        uint256 auctionId,
+        address owner,
+        uint256 amount
+    );
+
+    event PendingReturnsWithdrawn(
+        uint256 auctionId,
+        address owner,
+        uint256 amount
+    );
+
     address addressFee;
+    address rewardsSystemAddress;
     uint256 auctionFeeRate;
     uint256 bidFeeRate;
 
     event AuctionSystemSetup(
         address addressFee,
+        address rewardsSystemAddress,
         uint256 auctionFeeRate,
         uint256 bidFeeRate,
-        IERC20[] allowedTokens
+        IERC20[] allowedTokens,
+        IAuctionSystemManager auctionSystemManager,
+        IAuctionRewardsTotalRatesProvider rewardsTotalRatesProviderAddress
     );
 
     function getNow() public view returns (uint256) {
@@ -78,6 +114,10 @@ contract AlgoPainterAuctionSystem is
 
     function getAddressFee() public view returns (address) {
         return addressFee;
+    }
+
+    function getRewardsSystemAddress() public view returns (address) {
+        return rewardsSystemAddress;
     }
 
     function getAuctionFeeRate() public view returns (uint256) {
@@ -92,24 +132,39 @@ contract AlgoPainterAuctionSystem is
         return allowedTokens;
     }
 
+    function getAuctionSystemManager() public view returns (IAuctionSystemManager) {
+        return auctionSystemManager;
+    }
+
+    function getRewardsTotalRatesProviderAddress() public view returns (IAuctionRewardsTotalRatesProvider) {
+        return rewardsTotalRatesProviderAddress;
+    }
+
     function setup(
         address _addressFee,
+        address _rewardsSystemAddress,
         uint256 _auctionFeeRate,
         uint256 _bidFeeRate,
-        IERC20[] memory _allowedTokens
+        IERC20[] memory _allowedTokens,
+        IAuctionSystemManager _auctionSystemManager,
+        IAuctionRewardsTotalRatesProvider _rewardsTotalRatesProviderAddress
     ) public onlyRole(CONFIGURATOR_ROLE) {
         require(
             _auctionFeeRate <= ONE_HUNDRED_PERCENT,
             "AlgoPainterAuctionSystem:INVALID_AUCTION_FEE"
         );
+
         require(
             _bidFeeRate <= ONE_HUNDRED_PERCENT,
             "AlgoPainterAuctionSystem:INVALID_BID_FEE"
         );
 
         addressFee = _addressFee;
+        rewardsSystemAddress = _rewardsSystemAddress;
         auctionFeeRate = _auctionFeeRate;
         bidFeeRate = _bidFeeRate;
+        auctionSystemManager = _auctionSystemManager;
+        rewardsTotalRatesProviderAddress = _rewardsTotalRatesProviderAddress;
 
         for (uint256 i = 0; i < allowedTokens.length; i++) {
             allowedTokensMapping[allowedTokens[i]] = false;
@@ -123,9 +178,12 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             _addressFee,
+            _rewardsSystemAddress,
             _auctionFeeRate,
             _bidFeeRate,
-            _allowedTokens
+            _allowedTokens,
+            _auctionSystemManager,
+            _rewardsTotalRatesProviderAddress
         );
     }
 
@@ -137,9 +195,12 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
-            allowedTokens
+            allowedTokens,
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
     }
 
@@ -161,9 +222,12 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
-            allowedTokens
+            allowedTokens,
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
     }
 
@@ -176,10 +240,37 @@ contract AlgoPainterAuctionSystem is
 
         emit AuctionSystemSetup(
             addressFee,
+            rewardsSystemAddress,
             auctionFeeRate,
             bidFeeRate,
-            allowedTokens
+            allowedTokens,
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
         );
+    }
+
+    function setAuctionSystemManager(IAuctionSystemManager _auctionSystemManager)
+        public
+        onlyRole(CONFIGURATOR_ROLE)
+    {
+        auctionSystemManager = _auctionSystemManager;
+
+        emit AuctionSystemSetup(
+            addressFee,
+            rewardsSystemAddress,
+            auctionFeeRate,
+            bidFeeRate,
+            allowedTokens,
+            auctionSystemManager,
+            rewardsTotalRatesProviderAddress
+        );
+    }
+
+    function setRewardsTotalRatesProviderAddress(IAuctionRewardsTotalRatesProvider _rewardsTotalRatesProviderAddress)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        rewardsTotalRatesProviderAddress = _rewardsTotalRatesProviderAddress;
     }
 
     function createAuction(
@@ -188,8 +279,7 @@ contract AlgoPainterAuctionSystem is
         uint256 _tokenId,
         uint256 _minimumAmount,
         uint256 _auctionEndTime,
-        IERC20 _tokenPriceAddress,
-        uint256 _bidBackFee
+        IERC20 _tokenPriceAddress
     ) public returns (uint256) {
         if (_tokenType == TokenType.ERC721) {
             IERC721 token = IERC721(_tokenAddress);
@@ -225,11 +315,6 @@ contract AlgoPainterAuctionSystem is
             "AlgoPainterAuctionSystem:INVALID_TOKEN_PRICE_ADDRESS"
         );
 
-        require(
-            _bidBackFee <= ONE_HUNDRED_PERCENT,
-            "AlgoPainterAuctionSystem:INVALID_BID_BACK_PERCENTUAL"
-        );
-
         auctionInfo.push(
             AuctionInfo(
                 msg.sender,
@@ -239,7 +324,6 @@ contract AlgoPainterAuctionSystem is
                 _minimumAmount,
                 _auctionEndTime,
                 _tokenPriceAddress,
-                _bidBackFee,
                 false,
                 address(0),
                 0
@@ -247,6 +331,21 @@ contract AlgoPainterAuctionSystem is
         );
 
         auctions[_tokenAddress][_tokenId] = auctionInfo.length.sub(1);
+        
+        auctionSystemManager.onAuctionCreated(
+            auctions[_tokenAddress][_tokenId],
+            msg.sender
+        );
+
+        emit AuctionCreated(
+            auctions[_tokenAddress][_tokenId],
+            msg.sender,
+            _tokenAddress,
+            _tokenId,
+            _minimumAmount,
+            _auctionEndTime,
+            _tokenPriceAddress
+        );
 
         return auctions[_tokenAddress][_tokenId];
     }
@@ -274,7 +373,6 @@ contract AlgoPainterAuctionSystem is
             uint256 minimumAmount,
             uint256 auctionEndTime,
             IERC20 tokenPriceAddress,
-            uint256 bidBackFee,
             bool ended,
             address highestBidder,
             uint256 highestBid
@@ -289,7 +387,6 @@ contract AlgoPainterAuctionSystem is
         minimumAmount = auctionInfo.minimumAmount;
         auctionEndTime = auctionInfo.auctionEndTime;
         tokenPriceAddress = auctionInfo.tokenPriceAddress;
-        bidBackFee = auctionInfo.bidBackFee;
         ended = auctionInfo.ended;
         highestBidder = auctionInfo.highestBidder;
         highestBid = auctionInfo.highestBid;
@@ -297,6 +394,11 @@ contract AlgoPainterAuctionSystem is
 
     function bid(uint256 _auctionId, uint256 _amount) public {
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
+
+        require(
+            auctionInfo.beneficiary != msg.sender,
+            "AlgoPainterAuctionSystem:AUCTION_OWNER_CANNOT_BID"
+        );
 
         require(
             getNow() <= auctionInfo.auctionEndTime,
@@ -315,10 +417,11 @@ contract AlgoPainterAuctionSystem is
 
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
-        (uint256 netAmount, uint256 feeAmount) = getBidAmountInfo(_amount);
+        (, uint256 feeAmount) = getBidAmountInfo(_amount);
+        uint256 totalAmount = _amount.add(feeAmount);
 
         require(
-            tokenPrice.transferFrom(msg.sender, address(this), _amount),
+            tokenPrice.transferFrom(msg.sender, address(this), totalAmount),
             "AlgoPainterAuctionSystem:FAIL_TO_TRANSFER_BID_AMOUNT"
         );
 
@@ -327,23 +430,58 @@ contract AlgoPainterAuctionSystem is
             "AlgoPainterAuctionSystem:FAIL_TO_TRANSFER_FEE_AMOUNT"
         );
 
-        if (auctionInfo.highestBid != 0) {
+        //The new bidding user can be outbidded anytime and he may want to bid again
+        //This will transfer his outbidded value before he does the new bid
+        if(pendingReturns[_auctionId][msg.sender] > 0) {
+            withdraw(_auctionId);
+        }
+
+        //When stacking bids from same user should ignore the returns
+        if (auctionInfo.highestBid != 0 && auctionInfo.highestBidder != msg.sender) {
             pendingReturns[_auctionId][
                 auctionInfo.highestBidder
             ] = pendingReturns[_auctionId][auctionInfo.highestBidder].add(
                 auctionInfo.highestBid
             );
+
+            emit PendingReturnsIncreased(
+                _auctionId,
+                auctionInfo.highestBidder,
+                pendingReturns[_auctionId][auctionInfo.highestBidder]
+            );
+        }
+
+        bool isOverriden = false;
+        if(auctionInfo.highestBidder == msg.sender) {
+            (, uint256 oldFeeAmount) = getBidAmountInfo(auctionInfo.highestBid);
+            uint256 oldTotalAmount = auctionInfo.highestBid.add(oldFeeAmount);
+
+            feeAmount = feeAmount.add(oldFeeAmount);
+            totalAmount = totalAmount.add(oldTotalAmount);
+            _amount = _amount.add(auctionInfo.highestBid);
+
+            isOverriden = true;
         }
 
         auctionInfo.highestBidder = msg.sender;
-        auctionInfo.highestBid = netAmount;
+        auctionInfo.highestBid = _amount;
+
+        auctionSystemManager.onBid(
+            _auctionId,
+            msg.sender,
+            totalAmount,
+            feeAmount,
+            _amount,
+            isOverriden
+        );
 
         emit HighestBidIncreased(
             _auctionId,
             msg.sender,
-            _amount,
+            totalAmount,
             feeAmount,
-            netAmount
+            _amount,
+            isOverriden
         );
     }
 
@@ -352,7 +490,7 @@ contract AlgoPainterAuctionSystem is
         view
         returns (uint256)
     {
-        pendingReturns[_auctionId][_address];
+        return pendingReturns[_auctionId][_address];
     }
 
     function withdraw(uint256 _auctionId) public {
@@ -366,6 +504,18 @@ contract AlgoPainterAuctionSystem is
             require(
                 tokenPrice.transfer(msg.sender, amount),
                 "AlgoPainterAuctionSystem:FAIL_TO_WITHDRAW"
+            );
+
+            auctionSystemManager.onWithdraw(
+                _auctionId,
+                msg.sender,
+                amount
+            );
+
+            emit PendingReturnsWithdrawn(
+                _auctionId,
+                msg.sender,
+                amount
             );
         } else {
             revert("AlgoPainterAuctionSystem:NOTHING_TO_WITHDRAW");
@@ -381,12 +531,20 @@ contract AlgoPainterAuctionSystem is
         netAmount = _amount.sub(feeAmount);
     }
 
-    function getAuctionAmountInfo(uint256 _amount)
+    function getAuctionAmountInfo(uint256 _auctionId, uint256 _amount)
         public
         view
-        returns (uint256 netAmount, uint256 feeAmount)
+        returns (uint256 netAmount, uint256 feeAmount, uint256 rewardsAmount)
     {
-        (netAmount, feeAmount) = getFeeAndNetAmount(_amount, auctionFeeRate);
+        IAuctionRewardsTotalRatesProvider rewardsTotalRatesProvider = 
+            IAuctionRewardsTotalRatesProvider(rewardsTotalRatesProviderAddress);
+
+        uint256 rewardsRate = rewardsTotalRatesProvider.getRewardsRate(_auctionId);
+
+        feeAmount = _amount.mul(auctionFeeRate).div(ONE_HUNDRED_PERCENT);
+        rewardsAmount = _amount.mul(rewardsRate).div(ONE_HUNDRED_PERCENT);
+        
+        netAmount = _amount.sub(feeAmount).sub(rewardsAmount);
     }
 
     function getBidAmountInfo(uint256 _amount)
@@ -395,9 +553,9 @@ contract AlgoPainterAuctionSystem is
         returns (uint256 netAmount, uint256 feeAmount)
     {
         (netAmount, feeAmount) = getFeeAndNetAmount(_amount, bidFeeRate);
-    }
+    } 
 
-    function endAction(uint256 _auctionId) public {
+    function endAuction(uint256 _auctionId) public {
         AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
         IERC20 tokenPrice = IERC20(auctionInfo.tokenPriceAddress);
 
@@ -409,8 +567,14 @@ contract AlgoPainterAuctionSystem is
 
         address winner = auctionInfo.highestBidder;
         uint256 bidAmount = auctionInfo.highestBid;
-        (uint256 feeAmount, uint256 netAmount) =
-            getAuctionAmountInfo(bidAmount);
+
+        (uint256 netAmount, uint256 feeAmount, uint256 rewardsAmount) =
+            getAuctionAmountInfo(_auctionId, bidAmount);
+
+        require(
+            tokenPrice.transfer(rewardsSystemAddress, rewardsAmount),
+            "AlgoPainterAuctionSystem:FAIL_TO_PAY_REWARDS_SYSTEM"
+        );
 
         require(
             tokenPrice.transfer(auctionInfo.beneficiary, netAmount),
@@ -438,6 +602,54 @@ contract AlgoPainterAuctionSystem is
 
         auctionInfo.ended = true;
 
+        auctionSystemManager.onAuctionEnded(
+            _auctionId,
+            winner,
+            bidAmount,
+            feeAmount,
+            rewardsAmount,
+            netAmount
+        );
+
         emit AuctionEnded(_auctionId, winner, bidAmount, feeAmount, netAmount);
+    }
+
+    function cancelAuction(uint256 _auctionId) public {
+        AuctionInfo storage auctionInfo = auctionInfo[_auctionId];
+
+        require(!auctionInfo.ended, "AlgoPainterAuctionSystem:ALREADY_ENDED");
+
+        require(
+            auctionInfo.highestBid == 0,
+            "AlgoPainterAuctionSystem:ALREADY_HAS_BIDS"
+        );
+
+        require(
+            msg.sender == auctionInfo.beneficiary,
+            "AlgoPainterAuctionSystem:NOT_AUCTION_OWNER"
+        );
+        
+        if (auctionInfo.tokenType == TokenType.ERC721) {
+            IERC721 token = IERC721(auctionInfo.tokenAddress);
+            token.safeTransferFrom(address(this), auctionInfo.beneficiary, auctionInfo.tokenId);
+        } else {
+            IERC1155 token = IERC1155(auctionInfo.tokenAddress);
+            token.safeTransferFrom(
+                address(this),
+                auctionInfo.beneficiary,
+                auctionInfo.tokenId,
+                1,
+                DEFAULT_MESSAGE
+            );
+        }
+
+        auctionInfo.ended = true;
+
+        auctionSystemManager.onAuctionCancelled(
+            _auctionId,
+            msg.sender
+        );
+
+        emit AuctionCancelled(_auctionId, msg.sender);
     }
 }
