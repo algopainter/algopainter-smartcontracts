@@ -74,10 +74,14 @@ const Configurator = function () {
     const rewardRates = new web3.eth.Contract(AlgoPainterRewardsRates.abi, contractsAddress.AlgoPainterRewardsRates).methods;
     
     if (this.write) {
+      // const setAlgoPainterNFTCreatorsTx = personal.setAlgoPainterNFTCreators(contractsAddress.AlgoPainterNFTCreators);
+      // const setAlgoPainterRewardsRatesAddressTx = personal.setAlgoPainterRewardsRatesAddress(contractsAddress.AlgoPainterRewardsRates);
       const approveAuctionSystemTx = personal.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
       const grantRolePersonalTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
       const grantRolePersonalItemTx = rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
 
+      // await this.sendTransaction('setAlgoPainterNFTCreatorsTx', setAlgoPainterNFTCreatorsTx);
+      // await this.sendTransaction('setAlgoPainterRewardsRatesAddressTx', setAlgoPainterRewardsRatesAddressTx);
       await this.sendTransaction('approveAuctionSystemTx', approveAuctionSystemTx);
       await this.sendTransaction('grantRolePersonalTx', grantRolePersonalTx);
       await this.sendTransaction('grantRolePersonalItemTx', grantRolePersonalItemTx);
@@ -334,6 +338,11 @@ const Configurator = function () {
     }
   }
 
+  this.customCall = async(address, abi, method) => {
+    const instance = new web3.eth.Contract(abi, address).methods;
+    return eval(method);
+  }
+
   return this;
 }();
 
@@ -341,7 +350,7 @@ const Configurator = function () {
   try {
     Configurator.write = true;
 
-    //console.log(await Configurator.nftCreators());
+    console.log(await Configurator.nftCreators());
     console.log(await Configurator.personalItem());
     console.log(await Configurator.auctionSystem());
     console.log(await Configurator.auctionSystemAddToken());
