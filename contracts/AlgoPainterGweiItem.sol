@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0;
+pragma solidity ^0.7.4;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-import "./AlgoPainterAccessControl.sol";
-import "./AlgoPainterToken.sol";
+import "./accessControl/AlgoPainterAccessControl.sol";
 
-import "./IAlgoPainterItem.sol";
+import "./interfaces/IAlgoPainterItem.sol";
 
 contract AlgoPainterGweiItem is
     IAlgoPainterItem,
@@ -37,19 +37,13 @@ contract AlgoPainterGweiItem is
 
     mapping(uint256 => TokenConfig) tokenConfigs;
 
-    AlgoPainterToken algop;
+    IERC20 algop;
     address payable devAddress;
 
-    event NewPaint(
-        uint256 indexed tokenId,
-        address indexed owner,
-        bytes32 indexed hash
-    );
-
-    constructor(AlgoPainterToken _algop, address payable _devAddress)
+    constructor(IERC20 _algop, address payable _devAddress)
         ERC721("Algo Painter Gwei Item", "APGI")
     {
-        owner = msg.sender;
+        owner = payable(msg.sender);
         whitelist[owner] = true;
         canSetSpecialPlaces = true;
         algop = _algop;
@@ -62,7 +56,7 @@ contract AlgoPainterGweiItem is
         override
         returns (string memory)
     {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         return "Hashly Gwei";
     }
 
@@ -92,7 +86,7 @@ contract AlgoPainterGweiItem is
         override
         returns (uint256)
     {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         return getCurrentAmount(_supply);
     }
 
@@ -109,7 +103,7 @@ contract AlgoPainterGweiItem is
         uint256 _tokenId,
         uint256 _parameter
     ) public view override returns (uint256) {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         TokenConfig storage config = tokenConfigs[_tokenId];
 
         if (_parameter == 0) return uint256(config.inspiration);
@@ -124,7 +118,7 @@ contract AlgoPainterGweiItem is
         uint256 _tokenId,
         uint256 _parameter
     ) public view override returns (string memory) {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         TokenConfig storage config = tokenConfigs[_tokenId];
 
         if (_parameter == 1) return config.text;
@@ -137,7 +131,7 @@ contract AlgoPainterGweiItem is
         uint256 _tokenId,
         uint256 _parameter
     ) public view override returns (bool) {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         TokenConfig storage config = tokenConfigs[_tokenId];
 
         if (_parameter == 2) return config.useRandom;
@@ -151,7 +145,7 @@ contract AlgoPainterGweiItem is
         override
         returns (uint256)
     {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         return 500;
     }
 
@@ -161,7 +155,7 @@ contract AlgoPainterGweiItem is
         override
         returns (uint256)
     {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         return collectedAmount;
     }
 
@@ -171,7 +165,7 @@ contract AlgoPainterGweiItem is
         override
         returns (address[] memory)
     {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         address[] memory addresses;
         addresses[0] = address(algop);
 
@@ -184,7 +178,7 @@ contract AlgoPainterGweiItem is
         override
         returns (uint256)
     {
-        require(_algoPainterId == 0, "AlgoPainterGweiItem:INVALID_ID");
+        require(_algoPainterId == 0, "INVALID_ID");
         return getAmountToBurn();
     }
 
@@ -210,7 +204,7 @@ contract AlgoPainterGweiItem is
     {
         require(
             canSetSpecialPlaces,
-            "AlgoPainterGweiItem:SPCIAL_PLACES_CLOSED"
+            "SPCIAL_PLACES_CLOSED"
         );
         specialPlaces[place] = true;
     }
@@ -300,24 +294,24 @@ contract AlgoPainterGweiItem is
     ) public payable returns (uint256) {
         require(
             canMint(msg.sender, totalSupply()),
-            "AlgoPainterGweiItem:ONLY_WHITELISTED!"
+            "ONLY_WHITELISTED!"
         );
 
         bytes32 hash = hashData(_inspiration, _text, _useRandom, _probability);
 
-        require(hashes[hash] == 0, "AlgoPainterGweiItem:ALREADY_REGISTERED");
-        require(totalSupply() < 1000, "AlgoPainterGweiItem:GWEI_IS_RETIRED");
+        require(hashes[hash] == 0, "ALREADY_REGISTERED");
+        require(totalSupply() < 1000, "GWEI_IS_RETIRED");
 
         uint256 amount = getCurrentAmount(totalSupply());
 
         require(
             algop.allowance(msg.sender, address(this)) >= amount,
-            "AlgoPainterGweiItem:MINIMUM_ALLOWANCE_REQUIRED"
+            "MINIMUM_ALLOWANCE_REQUIRED"
         );
 
         require(
             amount <= _expectedAmount,
-            "AlgoPainterGweiItem:PRICE_HAS_CHANGED"
+            "PRICE_HAS_CHANGED"
         );
 
         collectedAmount += amount;
@@ -339,8 +333,6 @@ contract AlgoPainterGweiItem is
         );
         hashes[hash] = newItemId;
 
-        emit NewPaint(newItemId, msg.sender, hash);
-
         return newItemId;
     }
 
@@ -354,7 +346,7 @@ contract AlgoPainterGweiItem is
     {
         require(
             canSetSpecialPlaces,
-            "AlgoPainterGweiItem:SPCIAL_PLACES_CLOSED"
+            "SPCIAL_PLACES_CLOSED"
         );
 
         allowedSpecialPlaces[_tokenId][_place] = true;
@@ -373,7 +365,7 @@ contract AlgoPainterGweiItem is
     function updatePlace(uint256 _tokenId, uint8 _place) public {
         require(
             canUpdateToNewPlace(_tokenId, _place),
-            "AlgoPainterGweiItem:FORBIDEN_PLACE!"
+            "FORBIDEN_PLACE!"
         );
         tokenConfigs[_tokenId].place = _place;
     }
@@ -388,15 +380,15 @@ contract AlgoPainterGweiItem is
 
         address tokenOwner = ownerOf(_tokenId);
 
-        require(tokenOwner == msg.sender, "AlgoPainterGweiItem:INVALID_SENDER");
+        require(tokenOwner == msg.sender, "INVALID_SENDER");
 
         require(
             validator != address(0),
-            "AlgoPainterGweiItem:INVALID_SIGNATURE"
+            "INVALID_SIGNATURE"
         );
         require(
             hasRole(VALIDATOR_ROLE, validator),
-            "AlgoPainterGweiItem:INVALID_VALIDATOR"
+            "INVALID_VALIDATOR"
         );
 
         _setTokenURI(_tokenId, _tokenURI);

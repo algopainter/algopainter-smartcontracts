@@ -9,14 +9,21 @@
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.1",
     "dotenv": "^8.2.0",
+    "mongoose": "^6.1.2",
+    "node-gyp": "^8.4.1",
     "sleep": "^6.3.0",
+    "truffle": "^5.4.25",
+    "truffle-contract-size": "^2.0.1",
     "truffle-flattener": "^1.5.0",
     "truffle-hdwallet-provider": "^1.0.17",
     "web3": "^1.6.1"
   },
   "scripts": {
     "build": "truffle build",
-    "test": "truffle test --show-events",
+    "test": "truffle test",
+    "size": "truffle run contract-size",
+    "coverage": "truffle run coverage",
+    "test-events": "truffle test --show-events",
     "flattener": "truffle-flattener ./contracts/AlgoPainterAuctionSystem.sol > ./build/flattener/AlgoPainterAuctionSystem.sol"
   },
   "repository": {
@@ -29,5 +36,8 @@
   "bugs": {
     "url": "https://github.com/algopainter/algopainter-smartcontracts/issues"
   },
-  "homepage": "https://github.com/algopainter/algopainter-smartcontracts#readme"
+  "homepage": "https://github.com/algopainter/algopainter-smartcontracts#readme",
+  "devDependencies": {
+    "solidity-coverage": "^0.7.18"
+  }
 }
