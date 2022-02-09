@@ -1,5 +1,5 @@
 //This is a happy scenario testing no mocks
-contract.only('AlgoPainterEveryoneHappy', accounts => {
+contract('AlgoPainterEveryoneHappy', accounts => {
     const sleep = require('sleep');
     const AlgoPainterToken = artifacts.require('AlgoPainterToken');
     const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
@@ -39,20 +39,23 @@ contract.only('AlgoPainterEveryoneHappy', accounts => {
         contracts.ALGOP = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
         contracts.Gwei = await AlgoPainterGweiItem.new(contracts.ALGOP.address, GWEI_DEV);
         contracts.AuctionSystem = await AlgoPainterAuctionSystem.new('1209600');
-        contracts.RewardsRates = await AlgoPainterRewardsRates.new('1209600');
         contracts.RewardsDistributor = await AlgoPainterRewardsDistributor.new('1209600');
         contracts.NFTCreators = await AlgoPainterNFTCreators.new();
+        contracts.RewardsRates = await AlgoPainterRewardsRates.new(
+            '1209600',
+            3000,
+            3000,
+            3000,
+            contracts.RewardsDistributor.address,
+            contracts.AuctionSystem.address,
+            contracts.Gwei.address,
+            web3.utils.randomHex(20),
+            CREATOR_RATE,
+            CREATOR_RATE
+        );
 
         await contracts.NFTCreators.grantRole(await contracts.NFTCreators.CONFIGURATOR_ROLE(), contracts.AuctionSystem.address);
         await contracts.NFTCreators.setCreator(contracts.Gwei.address, GWEI_CREATOR);
-
-        await contracts.RewardsRates.grantRole(await contracts.RewardsRates.CONFIGURATOR_ROLE(), contracts.AuctionSystem.address);
-        await contracts.RewardsRates.setAuctionSystemAddress(contracts.AuctionSystem.address);
-        await contracts.RewardsRates.setAuctionDistributorAddress(contracts.RewardsDistributor.address);
-        await contracts.RewardsRates.setMaxPIRSRate(3000);
-        await contracts.RewardsRates.setMaxCreatorRoyaltiesRate(3000);
-        await contracts.RewardsRates.setCreatorRoyaltiesRate(contracts.Gwei.address, CREATOR_RATE);
-        await contracts.RewardsRates.setMaxBidbackRate(3000);
 
         await contracts.AuctionSystem.setup(DEV_FEE_ACCOUNT, contracts.RewardsDistributor.address, DEV_FEE, DEV_FEE, [contracts.ALGOP.address], contracts.RewardsRates.address);
         await contracts.AuctionSystem.setAlgoPainterNFTCreators(contracts.NFTCreators.address);

@@ -49,13 +49,13 @@ module.exports = {
   auctionTokens,
   emergencyInterval,
   contractsAddress : {
-    AlgoPainterToken: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
-    AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',
-    AlgoPainterExpressionsItem: '0xbe9cac059835236da5e91cd72688c43886b63419',
-    AlgoPainterPersonalItem: '0x1A6762DF60395CC1dDDa935e152Fa12D7a8f5966'.toLowerCase(),
-    AlgoPainterAuctionSystem: '0xeD2b4A5c6843aE7C6Bdb4F4807926a8bF7Cfa6b8'.toLowerCase(),
-    AlgoPainterRewardsRates: '0x07F578672Fa45Bb0904fdC386A8c92de8A1175c5'.toLowerCase(),
-    AlgoPainterRewardsDistributor: '0x4b6ce3F2757AfeaF5a26A653E62F77C73aE0D436'.toLowerCase(),
-    AlgoPainterNFTCreators: '0x31A8e303c6443a8B93302A3C1813EDe34E5bdC79'.toLowerCase()
+    AlgoPainterToken: '0xbee554dbbc677eb9fb711f5e939a2f2302598c75',
+    AlgoPainterGweiItem: '0x4b7ef899cbb24689a47a66d3864f57ec13e01b35',
+    AlgoPainterExpressionsItem: '0xb413ccfd8e7d75d8642c81ab012235fedd946eeb',
+    AlgoPainterPersonalItem: '0xfc58afce38b4ad43f346857374e408be2016be9e'.toLowerCase(),
+    AlgoPainterAuctionSystem: '0x20be675b1f372d6e8bc0e470447d93fe130092fb'.toLowerCase(),
+    AlgoPainterRewardsRates: '0xe3a717bd29d391e630080529f1a9c48a3b928ba9'.toLowerCase(),
+    AlgoPainterRewardsDistributor: '0x1be650986635edca1c1287dc2b3234eb44fc60a8'.toLowerCase(),
+    AlgoPainterNFTCreators: '0x5a14450488ba98c612b08f5e29802686854b5078'.toLowerCase()
   }
 }

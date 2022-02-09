@@ -10,7 +10,8 @@ interface IAuctionRewardsRates {
 
     function hasPIRSRateSetPerImage(address _tokenAddress, uint256 _tokenId)
         external
-        view returns (bool);
+        view
+        returns (bool);
 
     function setCreatorRoyaltiesRate(
         bytes32 _hashAddress,
@@ -18,6 +19,17 @@ interface IAuctionRewardsRates {
     ) external;
 
     function getCreatorRoyaltiesRate(uint256 _auctionId)
+        external
+        view
+        returns (uint256);
+
+    function getMaxCreatorRoyaltiesRate() external view returns (uint256);
+
+    function getMaxInvestorPirsRate() external view returns (uint256);
+
+    function getMaxBidbackRate() external view returns (uint256);
+
+    function getCreatorRate(address nftAddress, uint256 token)
         external
         view
         returns (uint256);

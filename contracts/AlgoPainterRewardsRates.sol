@@ -35,7 +35,8 @@ contract AlgoPainterRewardsRates is
     uint256 maxBidbackRate;
     bool canResetCreatorRate;
 
-    mapping(address => mapping(uint256 => uint256)) public bidbackRatePerAuction;
+    mapping(address => mapping(uint256 => uint256))
+        public bidbackRatePerAuction;
     mapping(address => mapping(uint256 => bool)) isBidbackSet;
 
     mapping(address => mapping(uint256 => uint256)) PIRSRatePerNFT;
@@ -46,8 +47,27 @@ contract AlgoPainterRewardsRates is
 
     mapping(bytes32 => uint256) rates;
 
-    constructor(uint256 _emergencyTimeInterval) AlgoPainterContractBase(_emergencyTimeInterval) {
+    constructor(
+        uint256 _emergencyTimeInterval,
+        uint256 _maxCreatorRoyaltiesRates,
+        uint256 _maxPirsRate,
+        uint256 _maxBidbackRate,
+        address _rewardsDistributor,
+        address _auctionSystem,
+        address _gwei,
+        address _expression,
+        uint256 _gweiRate,
+        uint256 _expressionRate
+    ) AlgoPainterContractBase(_emergencyTimeInterval) {
         canResetCreatorRate = false;
+        grantRole(CONFIGURATOR_ROLE, _auctionSystem);
+        setAuctionSystemAddress(_auctionSystem);
+        setAuctionDistributorAddress(_rewardsDistributor);
+        setMaxPIRSRate(_maxPirsRate);
+        setMaxCreatorRoyaltiesRate(_maxCreatorRoyaltiesRates);
+        setMaxBidbackRate(_maxBidbackRate);
+        setCreatorRoyaltiesRate(bytes32(bytes20(_gwei)), _gweiRate);
+        setCreatorRoyaltiesRate(bytes32(bytes20(_expression)), _expressionRate);
     }
 
     function setRate(bytes32 hashKey, uint256 rate)
@@ -129,7 +149,9 @@ contract AlgoPainterRewardsRates is
             "AlgoPainterRewardsRates:BIDBACK_IS_GREATER_THAN_ALLOWED"
         );
 
-        bidbackRatePerAuction[address(auctionSystem)][_auctionId] = _bidbackRate;
+        bidbackRatePerAuction[address(auctionSystem)][
+            _auctionId
+        ] = _bidbackRate;
         isBidbackSet[address(auctionSystem)][_auctionId] = true;
 
         emit BidbackUpdated(_auctionId, _bidbackRate);
@@ -230,21 +252,42 @@ contract AlgoPainterRewardsRates is
         override
         returns (uint256)
     {
-        (, , address _tokenAddress, , , , , , , ) = auctionSystem
+        (, , address _tokenAddress, uint256 tokenId, , , , , , ) = auctionSystem
             .getAuctionInfo(_auctionId);
 
-        return creatorRoyaltiesRates[bytes32(bytes20(_tokenAddress))];
+        return getCreatorRate(_tokenAddress, tokenId);
     }
 
-    function getMaxCreatorRoyaltiesRate() public view returns (uint256) {
+    function getCreatorRate(address nftAddress, uint256 token)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        bytes32 hashKey = bytes32(bytes20(nftAddress));
+
+        if (isCreatorRoyaltiesSet[hashKey]) {
+            return creatorRoyaltiesRates[hashKey];
+        }
+
+        hashKey = keccak256(abi.encodePacked(nftAddress, token));
+        return creatorRoyaltiesRates[hashKey];
+    }
+
+    function getMaxCreatorRoyaltiesRate()
+        public
+        view
+        override
+        returns (uint256)
+    {
         return maxCreatorRoyaltiesRates;
     }
 
-    function getMaxInvestorPirsRate() public view returns (uint256) {
+    function getMaxInvestorPirsRate() public view override returns (uint256) {
         return maxInvestorPirsRate;
     }
 
-    function getMaxBidbackRate() public view returns (uint256) {
+    function getMaxBidbackRate() public view override returns (uint256) {
         return maxBidbackRate;
     }
 
@@ -270,7 +313,7 @@ contract AlgoPainterRewardsRates is
     function emergencyTransfer(address tokenAddress)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
-        inEmergencyOwner()
+        inEmergencyOwner
     {
         address payable self = payable(address(this));
 
@@ -279,7 +322,7 @@ contract AlgoPainterRewardsRates is
         } else {
             IERC20 token = IERC20(tokenAddress);
             uint256 contractTokenBalance = token.balanceOf(self);
-            if(contractTokenBalance > 0) {
+            if (contractTokenBalance > 0) {
                 token.transferFrom(self, msg.sender, contractTokenBalance);
             }
         }
