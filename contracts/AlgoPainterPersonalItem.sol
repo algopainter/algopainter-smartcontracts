@@ -39,15 +39,18 @@ contract AlgoPainterPersonalItem is
     );
 
     constructor(
-        address nftCreatorsAddress,
+        address _nftCreatorsAddress,
         address _rewardsRatesAddress,
+        address _auctionSystemAddress,
         address _devAddress
     ) ERC721("Algo Painter Personal Item", "APPERI") {
         maxTokens = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-        nftCreators = IAlgoPainterNFTCreators(nftCreatorsAddress);
+        nftCreators = IAlgoPainterNFTCreators(_nftCreatorsAddress);
         algoPainterRewardsRates = IAuctionRewardsRates(_rewardsRatesAddress);
         devAddress = payable(_devAddress);
         mintCost = 0.1 ether;
+
+        setApprovalForAll(_auctionSystemAddress, true);
     }
 
     function setMaxTokens(uint256 _maxTokens)

@@ -15,7 +15,13 @@ contract('AlgoPainterPersonalItem', accounts => {
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
     nftCreators = await AlgoPainterNFTCreators.new();
-    auction = await AlgoPainterAuctionSystem.new('1209600');
+    auction = await AlgoPainterAuctionSystem.new(
+      '1209600',
+      accounts[9],
+      1000,
+      250,
+      [algop.address]
+    );
     auctionHook = await AuctionHookMOCK.new();
     rewardRates = await AlgoPainterRewardsRates.new(
       '1209600',
@@ -29,9 +35,9 @@ contract('AlgoPainterPersonalItem', accounts => {
       500,
       500
     );
-    instance = await AlgoPainterPersonalItem.new(nftCreators.address, rewardRates.address, accounts[9]);
+    instance = await AlgoPainterPersonalItem.new(nftCreators.address, rewardRates.address, auction.address, accounts[9]);
 
-    await auction.setup(accounts[9], auctionHook.address, 1000, 250, [algop.address], rewardRates.address);
+    await auction.setup(auctionHook.address, rewardRates.address, nftCreators.address);
 
     await rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE(), instance.address);
     await instance.setAlgoPainterRewardsRatesAddress(rewardRates.address);

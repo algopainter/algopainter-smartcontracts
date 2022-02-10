@@ -1,5 +1,6 @@
 // // SPDX-License-Identifier: MIT
 // pragma solidity ^0.7.4;
+// pragma abicoder v2;
 
 // import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -29,22 +30,22 @@
 //     }
 
 //     struct Price {
-//         uint256 from;
-//         uint256 to;
-//         uint256 amount;
+//         uint from;
+//         uint to;
+//         uint amount;
 //     }
 
 //     struct Collection {
-//         uint256 index;
+//         uint index;
 //         bytes32 hash;
 //         address artist;
 //         address walletAddress;
 //         bytes32 name;
 //         uint8 creatorPercentage;
-//         uint256 startingPrice;
+//         uint startingPrice;
 //         PriceType priceType;
 //         Price[] priceRange;
-//         uint256 nfts;
+//         uint16 nfts;
 //     }
 
 //     Collection[] public collections;
@@ -55,6 +56,7 @@
 
 //     uint16 public maxNFTs;
 //     uint16 public timePerBlock;
+//     uint public collectionPrice;
 //     address payable public devAddress;
 //     IAlgoPainterNFTCreators public nftCreators;
 //     IAuctionRewardsRates public algoPainterRewardsRates;
@@ -68,15 +70,20 @@
 //     constructor(
 //         address nftCreatorsAddress,
 //         address _rewardsRatesAddress,
+//         address _auctionSystemAddress,
 //         address _devAddress,
 //         uint16 _timePerBlock,
-//         uint16 _maxNFTs
+//         uint16 _maxNFTs,
+//         uint _collectionPrice
 //     ) ERC721("Algo Painter Artist Collection Item", "APPERI") {
 //         nftCreators = IAlgoPainterNFTCreators(nftCreatorsAddress);
 //         algoPainterRewardsRates = IAuctionRewardsRates(_rewardsRatesAddress);
 //         devAddress = payable(_devAddress);
 //         timePerBlock = _timePerBlock;
 //         maxNFTs = _maxNFTs;
+//         collectionPrice = _collectionPrice;
+
+//         setApprovalForAll(_auctionSystemAddress, true);
 //     }
 
 //     function setDevAddress(address _devAddress)
@@ -132,7 +139,7 @@
 //         uint256 endDT,
 //         uint256 startingPrice,
 //         PriceType priceType,
-//         Price[] priceRange,
+//         Price[] memory priceRange,
 //         uint256 nfts
 //     ) public view returns (bytes32) {
 //         return
@@ -144,7 +151,7 @@
 //                     creatorPercentage,
 //                     startingPrice,
 //                     priceType,
-//                     priceRange,
+//                     abi.encode(priceRange),
 //                     nfts
 //                 )
 //             );
@@ -158,7 +165,7 @@
 //         uint256 endDT,
 //         uint256 startingPrice,
 //         PriceType priceType,
-//         Price[] priceRange,
+//         Price[] memory priceRange,
 //         uint256 nfts
 //     ) public {
 //         require(nfts > 0 && nfts < maxNFTs, "NFT_AMOUNT_HIGHER_ZERO");
@@ -203,55 +210,11 @@
 //     function mint(
 //         string memory name,
 //         bytes32 collectionHash,
-//         bytes32 imageHash,
+//         bytes32[] calldata params,
 //         string memory tokenURI
 //     ) public payable returns (bytes32) {
-//         require(bytes(tokenURI).length > 0, "TOKENURI_REQUIRED");
 
-//         require(bytes(name).length > 0, "NAME_REQUIRED");
-
-//         bytes32 hashKey = keccak256(abi.encodePacked(name, imageHash));
-
-//         require(hashes[hashKey] == 0, "ALREADY_MINTED");
-
-//         require(totalSupply() + 1 < maxTokens, "MAXIMUM_AMOUNT_NFT_REACHED");
-
-//         if (address(mintToken) != address(0) && mintCostToken > 0) {
-//             require(
-//                 mintToken.allowance(msg.sender, address(this)) >= mintCostToken,
-//                 "MINIMUM_ALLOWANCE_REQUIRED"
-//             );
-
-//             mintToken.transferFrom(msg.sender, devAddress, mintCostToken);
-//         }
-
-//         if (mintCost > 0) {
-//             require(msg.value >= mintCost, "REQUIRED_AMOUNT_NOT_SENT");
-
-//             devAddress.transfer(mintCost);
-//         }
-
-//         _tokenIds.increment();
-
-//         uint256 newItemId = _tokenIds.current();
-
-//         hashes[hashKey] = newItemId;
-
-//         _mint(msg.sender, newItemId);
-//         _setTokenURI(newItemId, tokenURI);
-
-//         bytes32 tokenCreatorRoyaltiesHash = getTokenHashForAuction(newItemId);
-
-//         algoPainterRewardsRates.setCreatorRoyaltiesRate(
-//             tokenCreatorRoyaltiesHash,
-//             creatorPercentage
-//         );
-
-//         nftCreators.setCreator(address(this), newItemId, msg.sender);
-
-//         emit NewPersonalItem(newItemId, msg.sender, hashKey);
-
-//         return hashKey;
+//         return '';
 //     }
 
 //     function getTokenByHash(bytes32 hash) public view returns (uint256) {

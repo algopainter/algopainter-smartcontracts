@@ -1,4 +1,4 @@
-contract('AlgoPainterRewardsRates', accounts => {
+contract.only('AlgoPainterRewardsRates', accounts => {
   const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
   const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
   const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
@@ -13,10 +13,16 @@ contract('AlgoPainterRewardsRates', accounts => {
 
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
-    auction = await AlgoPainterAuctionSystem.new('1209600');
     nftCreators = await AlgoPainterNFTCreators.new();
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
     auctionHook = await AuctionHookMOCK.new();
+    auction = await AlgoPainterAuctionSystem.new(
+      '1209600',
+      accounts[9],
+      1000,
+      250,
+      [algop.address]
+    );
     rewardRates = await AlgoPainterRewardsRates.new(
       '1209600',
       3000,
@@ -30,7 +36,7 @@ contract('AlgoPainterRewardsRates', accounts => {
       500
     );
 
-    await auction.setup(accounts[9], auctionHook.address, 1000, 250, [algop.address], rewardRates.address);
+    await auction.setup(auctionHook.address, rewardRates.address, nftCreators.address);
 
     const amount = web3.utils.toWei('300', 'ether');
 
