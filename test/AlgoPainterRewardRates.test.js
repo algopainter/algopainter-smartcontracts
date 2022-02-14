@@ -1,4 +1,4 @@
-contract.only('AlgoPainterRewardsRates', accounts => {
+contract('AlgoPainterRewardsRates', accounts => {
   const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
   const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
   const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
