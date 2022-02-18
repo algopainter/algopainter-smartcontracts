@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.4;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -12,6 +11,9 @@ import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterArtistCollection.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
 
+//@TODO
+// Event de mint
+// Collection ID na API
 contract AlgoPainterArtistCollectionItem is
     AlgoPainterSimpleAccessControl,
     ERC721
@@ -28,7 +30,6 @@ contract AlgoPainterArtistCollectionItem is
     address payable private devAddress;
 
     mapping(uint256 => uint256[]) collectionTokens;
-    mapping(bytes32 => bool) collectionTokenUriUniquor;
     mapping(uint256 => mapping(bytes32 => uint256)) collectionTokenUniquor;
 
     IAlgoPainterNFTCreators public nftCreators;
@@ -36,7 +37,7 @@ contract AlgoPainterArtistCollectionItem is
     IAlgoPainterArtistCollection public artistCollection;
 
     //event NewCollection(Collection item);
-    event NewNFT(
+    event NewCollectionNFT(
         uint256 indexed collectionId,
         uint256 indexed tokenId,
         address mintedBy,
@@ -107,37 +108,38 @@ contract AlgoPainterArtistCollectionItem is
         returns (uint256)
     {
         artistCollection.hasCollection(collectionId);
-        uint256 mintedCount = artistCollection
-            .getCollectionTokens(collectionId)
-            .length;
-        uint256 mintValue = 0;
-
+        uint256 mintedCount = collectionTokens[collectionId].length.add(1);
+        
         (
-            bytes32 hash,
-            address artist,
-            address walletAddress,
-            uint256 startDT,
-            uint256 endDT,
-            bytes32 name,
-            uint16 creatorPercentage,
-            uint256 startingPrice,
-            address tokenPrice,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            uint256 mintValue,
+            ,
             IAlgoPainterArtistCollection.PriceType priceType,
-            IAlgoPainterArtistCollection.Price[] memory prices,
-            uint16 paramsCount,
-            uint16 nfts
+            uint256[] memory prices,
+            ,
+
         ) = artistCollection.getCollection(collectionId);
 
-        if (mintedCount == 0) return startingPrice;
-
-        for (uint8 i = 0; i < prices.length; i++) {
-            if (prices[i].from >= mintedCount && prices[i].to < mintedCount) {
-                mintValue = prices[i].amount;
-                break;
+        if (
+            mintedCount == 0 ||
+            priceType == IAlgoPainterArtistCollection.PriceType.Fixed
+        ) {
+            return mintValue;
+        } else {
+            for (uint256 i = 0; i < prices.length; i += 3) {
+                uint256 from = prices[i];
+                uint256 to = prices[i.add(1)];
+                uint256 amount = prices[i.add(2)];
+                if (from >= mintedCount && to <= mintedCount) {
+                    return amount;
+                }
             }
         }
-
-        require(mintValue > 0, "MINT_VALUE_INVALID");
 
         return mintValue;
     }
@@ -158,21 +160,9 @@ contract AlgoPainterArtistCollectionItem is
     {
         artistCollection.hasCollection(collectionId);
 
-        (
-            bytes32 hash,
-            address artist,
-            address walletAddress,
-            uint256 startDT,
-            uint256 endDT,
-            bytes32 name,
-            uint16 creatorPercentage,
-            uint256 startingPrice,
-            address tokenPrice,
-            IAlgoPainterArtistCollection.PriceType priceType,
-            IAlgoPainterArtistCollection.Price[] memory prices,
-            uint16 paramsCount,
-            uint16 nfts
-        ) = artistCollection.getCollection(collectionId);
+        (, , , , , , , , , , , uint16 nfts) = artistCollection.getCollection(
+            collectionId
+        );
 
         return nfts - collectionTokens[collectionId].length;
     }
@@ -183,97 +173,156 @@ contract AlgoPainterArtistCollectionItem is
         return amount;
     }
 
+    struct MintInfo {
+        bytes32 nameHash;
+        bytes32 hashedParams;
+        bytes32 hashedTokenUri;
+        IERC20 token;
+        uint256 amount;
+        uint256 artistAmount;
+        uint256 userFee;
+        uint256 artistFee;
+        uint256 devAmount;
+        uint256 newItemId;
+        address walletAddress;
+        uint256 startDT;
+        uint256 endDT;
+        address tokenPrice;
+        uint16 paramsCount;
+        uint16 creatorPercentage;
+        uint16 nfts;
+    }
+
     function mint(
-        string calldata name,
+        string calldata _name,
         uint256 collectionId,
         bytes32[] calldata params,
         string calldata tokenURI,
         uint256 expectedValue
     ) public payable {
-        require(bytes(tokenURI).length > 0, "TOKENURI_REQUIRED");
-        require(bytes(name).length > 0, "NAME_REQUIRED");
-
         artistCollection.hasCollection(collectionId);
 
-        (
-            bytes32 hash,
-            address artist,
-            address walletAddress,
-            uint256 startDT,
-            uint256 endDT,
-            bytes32 name,
-            uint16 creatorPercentage,
-            uint256 startingPrice,
-            address tokenPrice,
-            IAlgoPainterArtistCollection.PriceType priceType,
-            IAlgoPainterArtistCollection.Price[] memory prices,
-            uint16 paramsCount,
-            uint16 nfts
-        ) = artistCollection.getCollection(collectionId);
+        MintInfo memory toMint;
+
+        require(bytes(tokenURI).length > 0, "TOKENURI_REQUIRED");
+        require(bytes(_name).length > 0, "NAME_REQUIRED");
+
+        toMint.nameHash = keccak256(abi.encodePacked(collectionId, _name));
 
         require(
-            params.length == paramsCount,
-            "PARAMS_NOT_MATCH"
+            collectionTokenUniquor[collectionId][toMint.nameHash] == 0,
+            "NAME_NOT_UNIQUE"
         );
 
-        bytes32 hashedParams = keccak256(abi.encodePacked(params));
-        bytes32 hashedTokenUri = keccak256(abi.encodePacked(tokenURI));
+        (
+            ,
+            toMint.walletAddress,
+            toMint.startDT,
+            toMint.endDT,
+            ,
+            toMint.creatorPercentage,
+            ,
+            toMint.tokenPrice,
+            ,
+            ,
+            toMint.paramsCount,
+            toMint.nfts
+        ) = artistCollection.getCollection(collectionId);
+
+        require(collectionTokens[collectionId].length < toMint.nfts, "COLLECTION_RETIRED");
 
         require(
-            collectionTokenUriUniquor[hashedTokenUri] == false,
+            block.timestamp > toMint.startDT && block.timestamp < toMint.endDT,
+            "CANNOT_MINT"
+        );
+
+        require(params.length == toMint.paramsCount, "PARAMS_NOT_MATCH");
+
+        toMint.hashedParams = keccak256(abi.encodePacked(params));
+        toMint.hashedTokenUri = keccak256(abi.encodePacked(tokenURI));
+
+        require(
+            collectionTokenUniquor[collectionId][toMint.hashedTokenUri] == 0,
             "TOKEN_URI_INVALID"
         );
         require(
-            collectionTokenUniquor[collectionId][hashedParams] == 0,
+            collectionTokenUniquor[collectionId][toMint.hashedParams] == 0,
             "NOT_UNIQUE"
         );
 
-        uint256 amount = getMintValue(collectionId);
+        toMint.amount = getMintValue(collectionId);
 
-        require(amount <= expectedValue, "PRICE_HAS_CHANGED");
+        require(toMint.amount <= expectedValue, "PRICE_HAS_CHANGED");
 
-        IERC20 token = IERC20(tokenPrice);
-        uint256 artistAmount = getMintValueWithoutFee(collectionId);
-        uint256 userFee = amount.sub(artistAmount);
-        uint256 artistFee = artistAmount.mul(artistMintFee).div(
+        toMint.token = IERC20(toMint.tokenPrice);
+        toMint.artistAmount = getMintValueWithoutFee(collectionId);
+        toMint.userFee = toMint.amount.sub(toMint.artistAmount);
+        toMint.artistFee = toMint.artistAmount.mul(artistMintFee).div(
             ONE_HUNDRED_PERCENT
         );
-        artistAmount = artistAmount.sub(artistFee);
-        uint256 devAmount = userFee.add(artistFee);
+        toMint.artistAmount = toMint.artistAmount.sub(toMint.artistFee);
+        toMint.devAmount = toMint.userFee.add(toMint.artistFee);
 
         require(
-            token.allowance(msg.sender, address(this)) >= amount,
+            toMint.token.allowance(msg.sender, address(this)) >= toMint.amount,
             "MINIMUM_ALLOWANCE_REQUIRED"
         );
 
         require(
-            token.transferFrom(msg.sender, devAddress, devAmount),
+            toMint.token.transferFrom(msg.sender, devAddress, toMint.devAmount),
             "FAIL_TRANSFER_DEV"
         );
 
         require(
-            token.transferFrom(
+            toMint.token.transferFrom(
                 msg.sender,
-                walletAddress,
-                artistAmount
+                toMint.walletAddress,
+                toMint.artistAmount
             ),
             "FAIL_TRANSFER_ARTIST"
         );
 
-        _tokenIds.increment();
-        uint256 newItemId = _tokenIds.current();
-
-        _mint(msg.sender, newItemId);
-        _setTokenURI(newItemId, tokenURI);
-        
-        collectionTokenUriUniquor[hashedTokenUri] = true;
-        collectionTokenUniquor[collectionId][hashedParams] = newItemId;
-        collectionTokens[collectionId].push(newItemId);
-
-        emit NewNFT(
+        _mintNFT(
             collectionId,
-            newItemId,
-            address(msg.sender),
+            [ address(msg.sender), toMint.walletAddress ],
+            toMint.nameHash,
+            toMint.hashedTokenUri,
+            toMint.hashedParams,
+            tokenURI,
+            toMint.creatorPercentage
+        );
+    }
+
+    function _mintNFT(
+        uint256 collectionId,
+        address[2] memory artistAccounts,
+        bytes32 nameHash,
+        bytes32 hashedTokenUri,
+        bytes32 hashedParams,
+        string calldata tokenURI,
+        uint16 creatorPercentage
+    ) private {
+        _tokenIds.increment();
+        uint256 tokenId = _tokenIds.current();
+
+        _mint(artistAccounts[0], tokenId);
+        _setTokenURI(tokenId, tokenURI);
+
+        collectionTokenUniquor[collectionId][nameHash] = tokenId;
+        collectionTokenUniquor[collectionId][hashedTokenUri] = tokenId;
+        collectionTokenUniquor[collectionId][hashedParams] = tokenId;
+        collectionTokens[collectionId].push(tokenId);
+
+        bytes32 crHash = getTokenHashForAuction(tokenId);
+
+        rewardsRates.setCreatorRoyaltiesRate(crHash, creatorPercentage);
+
+        nftCreators.setCreator(address(this), tokenId, artistAccounts[1]);
+
+        emit NewCollectionNFT(
+            collectionId,
+            tokenId,
+            artistAccounts[0],
             tokenURI
         );
     }
