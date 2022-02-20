@@ -6,6 +6,7 @@ const rpcUrl = process.env.RPC_URL;
 const chainID = process.env.CHAIN_ID;
 const account = process.env.ACCOUNT;
 const mongourl = process.env.MONGO_URL;
+const env = process.env.ENV;
 const blockExplorer = process.env.BLOCKEXPLORER;
 const gasLimit = 10000000;
 const web3 = new Web3Class(rpcUrl);
@@ -35,6 +36,35 @@ const auctionTokens = [
   process.env.GWEI_ACCOUNT,
 ]
 
+const contractsAddress = {
+  production: {
+    BUSDToken: '0xe9e7cea3dedca5984780bafc599bd69add087d56',
+    AlgoPainterToken: '0xbee554dbbc677eb9fb711f5e939a2f2302598c75',
+    AlgoPainterGweiItem: '0x4b7ef899cbb24689a47a66d3864f57ec13e01b35',
+    AlgoPainterExpressionsItem: '0xb413ccfd8e7d75d8642c81ab012235fedd946eeb',
+    AlgoPainterPersonalItem: '0x03f9598461490505b1b1f8007eadc9409ee3650e'.toLowerCase(),
+    AlgoPainterAuctionSystem: '0xc5d1240fddcce3ed87298ad58bbfb2681048e7fa'.toLowerCase(),
+    AlgoPainterRewardsRates: '0x1637023587fd78de4c2de3ef9c6441624d438761'.toLowerCase(),
+    AlgoPainterRewardsDistributor: '0x90a1e949d675509172a14092309e5262d0d54ed5'.toLowerCase(),
+    AlgoPainterNFTCreators: '0x5a14450488ba98c612b08f5e29802686854b5078'.toLowerCase(),
+    AlgoPainterArtistCollection: ''.toLowerCase(),
+    AlgoPainterArtistCollectionItem: ''.toLowerCase()
+  },
+  testnet: {
+    BUSDToken: '0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee',
+    AlgoPainterToken: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
+    AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',
+    AlgoPainterExpressionsItem: '0xbe9cac059835236da5e91cd72688c43886b63419',
+    AlgoPainterNFTCreators: '0x31a8e303c6443a8b93302a3c1813ede34e5bdc79'.toLowerCase(),
+    AlgoPainterPersonalItem: '0xBbb5843f5f5eB9DBc14C10e8b8278eE20e68BB35'.toLowerCase(),
+    AlgoPainterAuctionSystem: '0x53B288e199649E2Fdc371B1F331b8b2A1dFFCC1a'.toLowerCase(),
+    AlgoPainterRewardsRates: '0xb784d074F52018AD35AEE897f75C4a37c52E4b1c'.toLowerCase(),
+    AlgoPainterRewardsDistributor: '0x7Af2b51175eCAAF29d97dFc459C7c35D9D9891dB'.toLowerCase(),
+    AlgoPainterArtistCollection: '0xB7907a50b67E6E0461Ab57B9866E243268fb1740'.toLowerCase(),
+    AlgoPainterArtistCollectionItem: '0xb633bBDbd4DC2031a9495c86118929641466934D'.toLowerCase()
+  }
+};
+
 module.exports = {
   mongourl,
   mnemonic,
@@ -48,14 +78,6 @@ module.exports = {
   fees,
   auctionTokens,
   emergencyInterval,
-  contractsAddress : {
-    AlgoPainterToken: '0xbee554dbbc677eb9fb711f5e939a2f2302598c75',
-    AlgoPainterGweiItem: '0x4b7ef899cbb24689a47a66d3864f57ec13e01b35',
-    AlgoPainterExpressionsItem: '0xb413ccfd8e7d75d8642c81ab012235fedd946eeb',
-    AlgoPainterPersonalItem: '0xfc58afce38b4ad43f346857374e408be2016be9e'.toLowerCase(),
-    AlgoPainterAuctionSystem: '0x20be675b1f372d6e8bc0e470447d93fe130092fb'.toLowerCase(),
-    AlgoPainterRewardsRates: '0xe3a717bd29d391e630080529f1a9c48a3b928ba9'.toLowerCase(),
-    AlgoPainterRewardsDistributor: '0x1be650986635edca1c1287dc2b3234eb44fc60a8'.toLowerCase(),
-    AlgoPainterNFTCreators: '0x5a14450488ba98c612b08f5e29802686854b5078'.toLowerCase()
-  }
+  env,
+  contractsAddress : contractsAddress[env]
 }
