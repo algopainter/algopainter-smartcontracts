@@ -200,7 +200,7 @@ contract AlgoPainterArtistCollection is
             "END_TIME_RANGE_INVALID"
         );
         require(
-            creatorPercentage < rewardsRates.getMaxCreatorRoyaltiesRate(),
+            creatorPercentage <= rewardsRates.getMaxCreatorRoyaltiesRate(),
             "CREATOR_RATE_TOO_MUCH"
         );
         require(startingPrice > 0, "MINT_COST_NOT_SET");
