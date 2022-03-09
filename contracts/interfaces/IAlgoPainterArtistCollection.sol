@@ -17,7 +17,6 @@ interface IAlgoPainterArtistCollection {
         uint256 startingPrice;
         address tokenPrice;
         PriceType priceType;
-        uint16 paramsCount;
         uint256[] prices;
         uint16 nfts;
     }
@@ -45,7 +44,6 @@ interface IAlgoPainterArtistCollection {
             address tokenPrice,
             PriceType priceType,
             uint256[] memory prices,
-            uint16 paramsCount,
             uint16 nfts
         );
 

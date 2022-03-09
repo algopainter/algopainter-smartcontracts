@@ -119,6 +119,29 @@ const Configurator = function () {
     }
   }
 
+  this.personalItem =  async () => {
+    console.log('=====================================================================================');
+    console.log('Configuring Algo Painter Personal Item');
+    console.log('=====================================================================================');
+
+    const personalItem = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contractsAddress.AlgoPainterPersonalItem).methods;
+    if (this.write) {
+      const setMintCostTx = personalItem.setMintCost(0);
+      const setMintTokenTx = personalItem.setMintToken(contractsAddress.AlgoPainterToken);
+      const setMintCostTokenTx = personalItem.setMintCostToken(web3.utils.toWei('17000'));
+
+      await this.sendTransaction('setMintCostTx', setMintCostTx);
+      await this.sendTransaction('setMintTokenTx', setMintTokenTx);
+      await this.sendTransaction('setMintCostTokenTx', setMintCostTokenTx);
+    }
+
+    return {
+      setMintCostTx: await personalItem.mintCost().call(),
+      setMintTokenTx: await personalItem.mintToken().call(),
+      setMintCostTokenTx: await personalItem.mintCostToken().call(),
+    }
+  }
+
   this.reloadSettings = async () => {
     console.log('=====================================================================================');
     console.log('Reloading Settings');
@@ -276,12 +299,13 @@ const Configurator = function () {
   try {
     Configurator.write = true;
 
-    console.log(await Configurator.nftCreators());
-    console.log(await Configurator.auctionSystem());
-    console.log(await Configurator.rewardsDistributorSystem());
-    console.log(await Configurator.rewardRatesSystem());
-    console.log(await Configurator.reloadSettings());
-    console.log(contractsAddress);
+     console.log(await Configurator.nftCreators());
+    // console.log(await Configurator.auctionSystem());
+    // console.log(await Configurator.rewardsDistributorSystem());
+     console.log(await Configurator.rewardRatesSystem());
+    // console.log(await Configurator.personalItem());
+    // console.log(await Configurator.reloadSettings());
+     console.log(contractsAddress);
 
   } catch (error) {
     console.error(error);

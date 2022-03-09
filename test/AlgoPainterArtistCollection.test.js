@@ -58,7 +58,8 @@ contract.only('AlgoPainterArtistCollection', accounts => {
       "1200000",
       rewardRates.address,
       DEV_FEE_ACCOUNT,
-      web3.utils.toWei('0.1', 'ether'),
+      web3.utils.toWei('17000', 'ether'),
+      algop.address,
       '1209600',
       '1',
       '1000',
@@ -81,10 +82,12 @@ contract.only('AlgoPainterArtistCollection', accounts => {
       nftCreators.address
     );
 
-    await algop.transfer(USER_ONE, web3.utils.toWei('10000', 'ether'));
-    await algop.transfer(USER_TWO, web3.utils.toWei('10000', 'ether'));
-    await algop.transfer(USER_THREE, web3.utils.toWei('10000', 'ether'));
-    await algop.transfer(USER_FOUR, web3.utils.toWei('10000', 'ether'));
+    await algop.transfer(ARTIST, web3.utils.toWei('40000', 'ether'));
+    await algop.transfer(USER_ONE, web3.utils.toWei('40000', 'ether'));
+    await algop.transfer(USER_TWO, web3.utils.toWei('40000', 'ether'));
+    await algop.transfer(USER_THREE, web3.utils.toWei('40000', 'ether'));
+    await algop.transfer(USER_FOUR, web3.utils.toWei('40000', 'ether'));
+    await algop.approve(artistCollection.address, web3.utils.toWei('17000', 'ether'), { from: ARTIST });
     await algop.approve(artistCollectionItem.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
     await algop.approve(artistCollectionItem.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
     await algop.approve(auction.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
@@ -110,7 +113,6 @@ contract.only('AlgoPainterArtistCollection', accounts => {
       web3.utils.toWei('100', 'ether'),
       algop.address,
       1,
-      2,
       [1, 5, web3.utils.toWei('100', 'ether'), 6, 10, web3.utils.toWei('200', 'ether')],
       10,
       {
@@ -133,7 +135,6 @@ contract.only('AlgoPainterArtistCollection', accounts => {
     expect(algop.address).to.be.equal(collectionData.tokenPrice.toString());
     expect('1').to.be.equal(collectionData.priceType.toString());
     expect(6).to.be.equal(collectionData.prices.length);
-    expect('2').to.be.equal(collectionData.paramsCount.toString());
     expect('10').to.be.equal(collectionData.nfts.toString());
   });
 
@@ -156,13 +157,13 @@ contract.only('AlgoPainterArtistCollection', accounts => {
     await artistCollectionItem.mint(
       'mouse',
       0,
-      [web3.utils.randomHex(32), web3.utils.randomHex(32)],
+      ['0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6','0xe61d9a3d3848fb2cdd9a2ab61e2f21a10ea431275aed628a0557f9dee697c37a','0xc0a1b4161f24688435c57ea81f26cd24d704bcd2560e2f5758e69582b4085494','0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6','0x6273151f959616268004b58dbb21e5c851b7b8d04498b4aabee12291d22fc034','0x044852b2a670ade5407e78fb2863c51de9fcb96542a07186fe3aeda6bb8a116d','0x6273151f959616268004b58dbb21e5c851b7b8d04498b4aabee12291d22fc034','0x99a4d6753a5d526f0442c260e94d9c15b48cec7c4c2ea9bd6cc6971d15b50c47','0x044852b2a670ade5407e78fb2863c51de9fcb96542a07186fe3aeda6bb8a116d','0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6','0x044852b2a670ade5407e78fb2863c51de9fcb96542a07186fe3aeda6bb8a116d','0x6273151f959616268004b58dbb21e5c851b7b8d04498b4aabee12291d22fc034','0x6273151f959616268004b58dbb21e5c851b7b8d04498b4aabee12291d22fc034'],
       'https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ',
       web3.utils.toWei('110', 'ether'),
       { from: USER_ONE }
     );
 
-    expect((await algop.balanceOf(USER_ONE)).toString()).to.be.equal(web3.utils.toWei('9890', 'ether'));
+    expect((await algop.balanceOf(USER_ONE)).toString()).to.be.equal(web3.utils.toWei('39890', 'ether'));
     expect(await artistCollectionItem.tokenURI(1)).to.be.equal('https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ');
     expect((await rewardRates.getCreatorRate(artistCollectionItem.address, 1)).toString()).to.be.equal('500');
     expect((await rewardRates.getCreatorRoyaltiesByTokenAddress(await artistCollectionItem.getTokenHashForAuction(1))).toString()).to.be.equal('500');

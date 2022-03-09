@@ -2,6 +2,7 @@
 pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./AlgoPainterContractBase.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
@@ -23,6 +24,7 @@ contract AlgoPainterArtistCollection is
 
     uint16 public maxNFTs;
     uint256 public collectionPrice;
+    IERC20 public collectionPriceToken;
     uint256 public maxCollectionTime;
     uint256 public minCollectionTime;
     address payable private devAddress;
@@ -34,6 +36,7 @@ contract AlgoPainterArtistCollection is
         address _rewardsRatesAddress,
         address _devAddress,
         uint256 _collectionPrice,
+        address _collectionPriceToken,
         uint256 _maxCollectionTime,
         uint256 _minCollectionTime,
         uint16 _maxNFTs,
@@ -43,6 +46,7 @@ contract AlgoPainterArtistCollection is
         devAddress = payable(_devAddress);
         maxNFTs = _maxNFTs;
         collectionPrice = _collectionPrice;
+        collectionPriceToken = IERC20(_collectionPriceToken);
         maxCollectionTime = _maxCollectionTime;
         minCollectionTime = _minCollectionTime;
         allowedTokens = _allowedTokens;
@@ -84,6 +88,13 @@ contract AlgoPainterArtistCollection is
         onlyRole(CONFIGURATOR_ROLE)
     {
         collectionPrice = _collectionPrice;
+    }
+
+    function setCollectionPriceToken(address _collectionPriceToken)
+        public
+        onlyRole(CONFIGURATOR_ROLE)
+    {
+        collectionPriceToken = IERC20(_collectionPriceToken);
     }
 
     function setDevAddress(address _devAddress)
@@ -148,7 +159,6 @@ contract AlgoPainterArtistCollection is
             address tokenPrice,
             PriceType priceType,
             uint256[] memory prices,
-            uint16 paramsCount,
             uint16 nfts
         )
     {
@@ -160,7 +170,6 @@ contract AlgoPainterArtistCollection is
         endDT = collection.endDT;
         name = collection.name;
         creatorPercentage = collection.creatorPercentage;
-        paramsCount = collection.paramsCount;
         nfts = collection.nfts;
         startingPrice = collection.startingPrice;
         tokenPrice = collection.tokenPrice;
@@ -176,30 +185,24 @@ contract AlgoPainterArtistCollection is
         uint256 startingPrice,
         address tokenPrice,
         PriceType priceType,
-        uint16 paramsCount,
         uint256[] calldata prices,
         uint16 nfts
     ) public payable {
         require(allowedTokensMapping[tokenPrice], "TOKEN_UNAVAILABLE");
         require(nfts > 0 && nfts <= maxNFTs, "NFT_AMOUNT_INVALID");
-
         require(timeRange[1] > timeRange[0], "TIME_RANGE_INVALID");
-
         require(
             timeRange[0] >= (block.timestamp + minCollectionTime).sub(getTimeSafety()),
             "START_TIME_RANGE_INVALID"
         );
-
         require(
             timeRange[1] <= (block.timestamp + maxCollectionTime).add(getTimeSafety()),
             "END_TIME_RANGE_INVALID"
         );
-
         require(
             creatorPercentage < rewardsRates.getMaxCreatorRoyaltiesRate(),
             "CREATOR_RATE_TOO_MUCH"
         );
-
         require(startingPrice > 0, "MINT_COST_NOT_SET");
 
         if (priceType == PriceType.Variable) {
@@ -210,8 +213,17 @@ contract AlgoPainterArtistCollection is
 
         require(!collectionNames[name], "COLLECTION_NAME_NOT_UNIQUE");
 
-        if (collectionPrice > 0) {
-            require(msg.value >= collectionPrice, "REQUIRED_AMOUNT_NOT_SENT");
+        if (address(collectionPriceToken) != address(0) && collectionPrice > 0) {
+            require(
+                collectionPriceToken.allowance(msg.sender, address(this)) >= collectionPrice,
+                "MINIMUM_ALLOWANCE_REQUIRED"
+            );
+
+            collectionPriceToken.transferFrom(msg.sender, devAddress, collectionPrice);
+        }
+
+        if (address(collectionPriceToken) == address(0) && collectionPrice > 0) {
+            require(msg.value >= collectionPrice, "AMOUNT_NOT_SENT");
             devAddress.transfer(collectionPrice);
         }
 
@@ -228,7 +240,6 @@ contract AlgoPainterArtistCollection is
                 startingPrice,
                 tokenPrice,
                 priceType,
-                paramsCount,
                 prices,
                 nfts
             )

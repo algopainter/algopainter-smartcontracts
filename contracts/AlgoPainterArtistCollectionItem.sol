@@ -11,9 +11,6 @@ import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterArtistCollection.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
 
-//@TODO
-// Event de mint
-// Collection ID na API
 contract AlgoPainterArtistCollectionItem is
     AlgoPainterSimpleAccessControl,
     ERC721
@@ -121,7 +118,6 @@ contract AlgoPainterArtistCollectionItem is
             ,
             IAlgoPainterArtistCollection.PriceType priceType,
             uint256[] memory prices,
-            ,
 
         ) = artistCollection.getCollection(collectionId);
 
@@ -160,7 +156,7 @@ contract AlgoPainterArtistCollectionItem is
     {
         artistCollection.hasCollection(collectionId);
 
-        (, , , , , , , , , , , uint16 nfts) = artistCollection.getCollection(
+        (, , , , , , , , , , uint16 nfts) = artistCollection.getCollection(
             collectionId
         );
 
@@ -188,7 +184,6 @@ contract AlgoPainterArtistCollectionItem is
         uint256 startDT;
         uint256 endDT;
         address tokenPrice;
-        uint16 paramsCount;
         uint16 creatorPercentage;
         uint16 nfts;
     }
@@ -225,7 +220,6 @@ contract AlgoPainterArtistCollectionItem is
             toMint.tokenPrice,
             ,
             ,
-            toMint.paramsCount,
             toMint.nfts
         ) = artistCollection.getCollection(collectionId);
 
@@ -235,8 +229,6 @@ contract AlgoPainterArtistCollectionItem is
             block.timestamp > toMint.startDT && block.timestamp < toMint.endDT,
             "CANNOT_MINT"
         );
-
-        require(params.length == toMint.paramsCount, "PARAMS_NOT_MATCH");
 
         toMint.hashedParams = keccak256(abi.encodePacked(params));
         toMint.hashedTokenUri = keccak256(abi.encodePacked(tokenURI));
