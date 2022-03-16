@@ -104,10 +104,7 @@ contract AlgoPainterArtistCollection is
         devAddress = payable(_devAddress);
     }
 
-    function setMaxNFTs(uint16 nfts) 
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
+    function setMaxNFTs(uint16 nfts) public onlyRole(CONFIGURATOR_ROLE) {
         maxNFTs = nfts;
     }
 
@@ -192,11 +189,13 @@ contract AlgoPainterArtistCollection is
         require(nfts > 0 && nfts <= maxNFTs, "NFT_AMOUNT_INVALID");
         require(timeRange[1] > timeRange[0], "TIME_RANGE_INVALID");
         require(
-            timeRange[0] >= (block.timestamp + minCollectionTime).sub(getTimeSafety()),
+            timeRange[0] >=
+                (block.timestamp + minCollectionTime).sub(getTimeSafety()),
             "START_TIME_RANGE_INVALID"
         );
         require(
-            timeRange[1] <= (block.timestamp + maxCollectionTime).add(getTimeSafety()),
+            timeRange[1] <=
+                (block.timestamp + maxCollectionTime).add(getTimeSafety()),
             "END_TIME_RANGE_INVALID"
         );
         require(
@@ -208,21 +207,33 @@ contract AlgoPainterArtistCollection is
         if (priceType == PriceType.Variable) {
             require(prices.length > 1, "PRICE_RANGE_NOT_SET");
             require(prices.length <= 60, "PRICE_RANGE_INVALID");
-            require(prices[prices.length - 2] == nfts, "NO_PRICE_RANGE_FOR_ALL");
+            require(
+                prices[prices.length - 2] == nfts,
+                "NO_PRICE_RANGE_FOR_ALL"
+            );
         }
 
         require(!collectionNames[name], "COLLECTION_NAME_NOT_UNIQUE");
 
-        if (address(collectionPriceToken) != address(0) && collectionPrice > 0) {
+        if (
+            address(collectionPriceToken) != address(0) && collectionPrice > 0
+        ) {
             require(
-                collectionPriceToken.allowance(msg.sender, address(this)) >= collectionPrice,
+                collectionPriceToken.allowance(msg.sender, address(this)) >=
+                    collectionPrice,
                 "MINIMUM_ALLOWANCE_REQUIRED"
             );
 
-            collectionPriceToken.transferFrom(msg.sender, devAddress, collectionPrice);
+            collectionPriceToken.transferFrom(
+                msg.sender,
+                devAddress,
+                collectionPrice
+            );
         }
 
-        if (address(collectionPriceToken) == address(0) && collectionPrice > 0) {
+        if (
+            address(collectionPriceToken) == address(0) && collectionPrice > 0
+        ) {
             require(msg.value >= collectionPrice, "AMOUNT_NOT_SENT");
             devAddress.transfer(collectionPrice);
         }
