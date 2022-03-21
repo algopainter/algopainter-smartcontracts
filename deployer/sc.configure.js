@@ -304,7 +304,7 @@ const Configurator = function () {
     // console.log(await Configurator.rewardsDistributorSystem());
      console.log(await Configurator.rewardRatesSystem());
     // console.log(await Configurator.personalItem());
-    // console.log(await Configurator.reloadSettings());
+     console.log(await Configurator.reloadSettings());
      console.log(contractsAddress);
 
   } catch (error) {

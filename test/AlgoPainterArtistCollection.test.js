@@ -115,6 +115,7 @@ contract.only('AlgoPainterArtistCollection', accounts => {
       1,
       [1, 5, web3.utils.toWei('0.1', 'ether'), 6, 10, web3.utils.toWei('200', 'ether')],
       10,
+      'QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ',
       {
         from: ARTIST
       }
@@ -135,6 +136,7 @@ contract.only('AlgoPainterArtistCollection', accounts => {
     expect('1').to.be.equal(collectionData.priceType.toString());
     expect(6).to.be.equal(collectionData.prices.length);
     expect('10').to.be.equal(collectionData.nfts.toString());
+    expect('QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ').to.be.equal(collectionData.descriptor.toString());
   });
 
   it("Should be able to interact with ArtistCollectionItem", async () => {

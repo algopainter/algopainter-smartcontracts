@@ -60,8 +60,8 @@ const contractsAddress = {
     AlgoPainterAuctionSystem: '0x53B288e199649E2Fdc371B1F331b8b2A1dFFCC1a'.toLowerCase(),
     AlgoPainterRewardsRates: '0xb784d074F52018AD35AEE897f75C4a37c52E4b1c'.toLowerCase(),
     AlgoPainterRewardsDistributor: '0x7Af2b51175eCAAF29d97dFc459C7c35D9D9891dB'.toLowerCase(),
-    AlgoPainterArtistCollection: '0x2E9E15DB35898db48c354e31aF26817ca9c20170'.toLowerCase(),
-    AlgoPainterArtistCollectionItem: '0xc406d7DD29E7501167615CBBCfbacAd369407BF8'.toLowerCase()
+    AlgoPainterArtistCollection: '0xE54868DB68f2191aFbB1ce9a349101bA1cFc9894'.toLowerCase(),
+    AlgoPainterArtistCollectionItem: '0x05E82463BC42A9B750F3cf69855A96923b56d995'.toLowerCase()
   }
 };
 

@@ -19,6 +19,7 @@ interface IAlgoPainterArtistCollection {
         PriceType priceType;
         uint256[] prices;
         uint16 nfts;
+        string descriptor;
     }
 
     event CollectionCreated(
@@ -44,7 +45,8 @@ interface IAlgoPainterArtistCollection {
             address tokenPrice,
             PriceType priceType,
             uint256[] memory prices,
-            uint16 nfts
+            uint16 nfts,
+            string memory descriptor
         );
 
     function hasCollection(uint256 collectionId) external view;

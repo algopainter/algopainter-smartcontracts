@@ -156,7 +156,8 @@ contract AlgoPainterArtistCollection is
             address tokenPrice,
             PriceType priceType,
             uint256[] memory prices,
-            uint16 nfts
+            uint16 nfts,
+            string memory descriptor
         )
     {
         hasCollection(collectionId);
@@ -172,6 +173,7 @@ contract AlgoPainterArtistCollection is
         tokenPrice = collection.tokenPrice;
         priceType = collection.priceType;
         prices = collection.prices;
+        descriptor = collection.descriptor;
     }
 
     function createCollection(
@@ -183,7 +185,8 @@ contract AlgoPainterArtistCollection is
         address tokenPrice,
         PriceType priceType,
         uint256[] calldata prices,
-        uint16 nfts
+        uint16 nfts,
+        string calldata descriptor
     ) public payable {
         require(allowedTokensMapping[tokenPrice], "TOKEN_UNAVAILABLE");
         require(nfts > 0 && nfts <= maxNFTs, "NFT_AMOUNT_INVALID");
@@ -252,7 +255,8 @@ contract AlgoPainterArtistCollection is
                 tokenPrice,
                 priceType,
                 prices,
-                nfts
+                nfts,
+                descriptor
             )
         );
 

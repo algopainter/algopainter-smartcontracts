@@ -118,7 +118,7 @@ contract AlgoPainterArtistCollectionItem is
             ,
             IAlgoPainterArtistCollection.PriceType priceType,
             uint256[] memory prices,
-
+            ,
         ) = artistCollection.getCollection(collectionId);
 
         if (
@@ -156,7 +156,7 @@ contract AlgoPainterArtistCollectionItem is
     {
         artistCollection.hasCollection(collectionId);
 
-        (, , , , , , , , , , uint16 nfts) = artistCollection.getCollection(
+        (, , , , , , , , , , uint16 nfts,) = artistCollection.getCollection(
             collectionId
         );
 
@@ -221,6 +221,7 @@ contract AlgoPainterArtistCollectionItem is
             ,
             ,
             toMint.nfts
+            ,
         ) = artistCollection.getCollection(collectionId);
 
         require(collectionTokens[collectionId].length < toMint.nfts, "COLLECTION_RETIRED");
