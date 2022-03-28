@@ -27,6 +27,7 @@ contract AlgoPainterArtistCollectionItem is
     address payable private devAddress;
 
     mapping(uint256 => uint256[]) collectionTokens;
+    mapping(uint256 => mapping(uint256 => uint256)) collectionTokensToToken;
     mapping(uint256 => mapping(bytes32 => uint256)) collectionTokenUniquor;
 
     IAlgoPainterNFTCreators public nftCreators;
@@ -106,7 +107,7 @@ contract AlgoPainterArtistCollectionItem is
     {
         artistCollection.hasCollection(collectionId);
         uint256 mintedCount = collectionTokens[collectionId].length.add(1);
-        
+
         (
             ,
             ,
@@ -119,6 +120,7 @@ contract AlgoPainterArtistCollectionItem is
             IAlgoPainterArtistCollection.PriceType priceType,
             uint256[] memory prices,
             ,
+
         ) = artistCollection.getCollection(collectionId);
 
         if (
@@ -156,7 +158,7 @@ contract AlgoPainterArtistCollectionItem is
     {
         artistCollection.hasCollection(collectionId);
 
-        (, , , , , , , , , , uint16 nfts,) = artistCollection.getCollection(
+        (, , , , , , , , , , uint16 nfts, ) = artistCollection.getCollection(
             collectionId
         );
 
@@ -220,11 +222,14 @@ contract AlgoPainterArtistCollectionItem is
             toMint.tokenPrice,
             ,
             ,
-            toMint.nfts
-            ,
+            toMint.nfts,
+
         ) = artistCollection.getCollection(collectionId);
 
-        require(collectionTokens[collectionId].length < toMint.nfts, "COLLECTION_RETIRED");
+        require(
+            collectionTokens[collectionId].length < toMint.nfts,
+            "COLLECTION_RETIRED"
+        );
 
         require(
             block.timestamp > toMint.startDT && block.timestamp < toMint.endDT,
@@ -277,7 +282,7 @@ contract AlgoPainterArtistCollectionItem is
 
         _mintNFT(
             collectionId,
-            [ address(msg.sender), toMint.walletAddress ],
+            [address(msg.sender), toMint.walletAddress],
             toMint.nameHash,
             toMint.hashedTokenUri,
             toMint.hashedParams,
@@ -305,6 +310,9 @@ contract AlgoPainterArtistCollectionItem is
         collectionTokenUniquor[collectionId][hashedTokenUri] = tokenId;
         collectionTokenUniquor[collectionId][hashedParams] = tokenId;
         collectionTokens[collectionId].push(tokenId);
+        collectionTokensToToken[collectionId][tokenId] = collectionTokens[
+            collectionId
+        ].length;
 
         bytes32 crHash = getTokenHashForAuction(tokenId);
 
@@ -318,5 +326,13 @@ contract AlgoPainterArtistCollectionItem is
             artistAccounts[0],
             tokenURI
         );
+    }
+
+    function getTokenSenquentialNumber(uint256 _collectionId, uint256 _tokenId)
+        public
+        view
+        returns (uint256)
+    {
+        return collectionTokensToToken[_collectionId][_tokenId];
     }
 }

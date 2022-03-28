@@ -157,6 +157,13 @@ contract AlgoPainterAuctionSystem is
         );
     }
 
+    function setAddressFee(address _addressFee)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        addressFee = _addressFee;
+    }
+
     function setAlgoPainterNFTCreators(address _nftCreators)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)

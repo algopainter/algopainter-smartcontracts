@@ -49,6 +49,7 @@ const deploy = async (contract, args) => {
 
 (async function () {
   try {
+    
     // await deploy(AlgoPainterNFTCreators);
     // const auctionSystemDeployTransaction = await deploy(AlgoPainterAuctionSystem, [
     //   emergencyInterval,
