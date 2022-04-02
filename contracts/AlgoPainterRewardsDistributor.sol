@@ -62,9 +62,15 @@ contract AlgoPainterRewardsDistributor is
 
     event PIRSClaimed(uint256 auctionId, address account, uint256 amount);
 
-    constructor(uint256 _emergencyTimeInterval)
-        AlgoPainterContractBase(_emergencyTimeInterval)
+    constructor(
+        uint256 _emergencyTimeInterval,
+        address _auctionSystem,
+        address _stakeToken
+    ) AlgoPainterContractBase(_emergencyTimeInterval)
     {
+        setAuctionSystemAddress(_auctionSystem);
+        setAllowedSender(_auctionSystem);
+        setStakeToken(_stakeToken);
     }
 
     function auctionKey(uint256 auctionId) private view returns (bytes32){

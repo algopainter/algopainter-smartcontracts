@@ -13,17 +13,30 @@ contract('AlgoPainterRewardsRates', accounts => {
 
   it('should deploy the contracts', async () => {
     algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
-    auction = await AlgoPainterAuctionSystem.new('1209600');
-    rewardRates = await AlgoPainterRewardsRates.new('1209600');
     nftCreators = await AlgoPainterNFTCreators.new();
     gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
     auctionHook = await AuctionHookMOCK.new();
+    auction = await AlgoPainterAuctionSystem.new(
+      '1209600',
+      accounts[9],
+      1000,
+      250,
+      [algop.address]
+    );
+    rewardRates = await AlgoPainterRewardsRates.new(
+      '1209600',
+      3000,
+      3000,
+      3000,
+      auctionHook.address,
+      auction.address,
+      gwei.address,
+      web3.utils.randomHex(20),
+      500,
+      500
+    );
 
-    await auction.setup(accounts[9], auctionHook.address, 1000, 250, [algop.address], rewardRates.address);
-
-    await rewardRates.setAuctionSystemAddress(auction.address);
-    await rewardRates.setAuctionDistributorAddress(auctionHook.address);
-    await rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE(), auction.address);
+    await auction.setup(auctionHook.address, rewardRates.address, nftCreators.address);
 
     const amount = web3.utils.toWei('300', 'ether');
 
@@ -35,7 +48,7 @@ contract('AlgoPainterRewardsRates', accounts => {
   });
 
   it('Should set max investor pirs for all collections and a investor pirs for a specific image in a collection', async () => {
-    await rewardRates.setMaxPIRSRate(3000);
+    //await rewardRates.setMaxPIRSRate(3000);
 
     const maxPirs = await rewardRates.getMaxInvestorPirsRate();
     expect(maxPirs.toString()).to.be.equal('3000', 'fail to check maxInvestorPirsRate');
@@ -52,7 +65,7 @@ contract('AlgoPainterRewardsRates', accounts => {
   it('Should set max bidback for all auctions and a bidback for an auction', async () => {
     const auctionId = await auction.getAuctionId(gwei.address, 1);
 
-    await rewardRates.setMaxBidbackRate(3000);
+    // await rewardRates.setMaxBidbackRate(3000);
 
     const maxBidback = await rewardRates.getMaxBidbackRate();
     expect(maxBidback.toString()).to.be.equal('3000', 'fail to check maxBidbackRate');
@@ -73,21 +86,24 @@ contract('AlgoPainterRewardsRates', accounts => {
   });
 
   it('Should set max creator pirs and a creator pirs for a collection', async () => {
-    await rewardRates.setMaxCreatorRoyaltiesRate(3000);
+    // await rewardRates.setMaxCreatorRoyaltiesRate(3000);
 
     const maxPirs = await rewardRates.getMaxCreatorRoyaltiesRate();
     expect(maxPirs.toString()).to.be.equal('3000', 'fail to check maxCreatorRoyaltiesRate');
 
-    const unsettedPirs = await rewardRates.getCreatorRoyaltiesRate(0);
-    expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorRoyaltiesRate');
+    // const unsettedPirs = await rewardRates.getCreatorRoyaltiesRate(0);
+    // expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorRoyaltiesRate');
 
-    await rewardRates.setCreatorRoyaltiesRate(gwei.address, 150);
+    // await rewardRates.setCreatorRoyaltiesRate(gwei.address, 150);
 
     const updatedPirs = await rewardRates.getCreatorRoyaltiesRate(0);
-    expect(updatedPirs.toString()).to.be.equal('150', 'fail to check creatorRoyaltiesRate');
+    expect(updatedPirs.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
 
     const updatedPirsByAddress = await rewardRates.getCreatorRoyaltiesByTokenAddress(gwei.address);
-    expect(updatedPirsByAddress.toString()).to.be.equal('150', 'fail to check creatorRoyaltiesRate');
+    expect(updatedPirsByAddress.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
+
+    const updatedPirsByAddress2 = await rewardRates.getCreatorRate(gwei.address, 0);
+    expect(updatedPirsByAddress2.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
   });
 
   it('Should return the sum of all rewards', async () => {
