@@ -48,8 +48,8 @@ const contractsAddress = {
     AlgoPainterRewardsRates: '0x1637023587fd78de4c2de3ef9c6441624d438761'.toLowerCase(),
     AlgoPainterRewardsDistributor: '0x90a1e949d675509172a14092309e5262d0d54ed5'.toLowerCase(),
     AlgoPainterNFTCreators: '0x5a14450488ba98c612b08f5e29802686854b5078'.toLowerCase(),
-    AlgoPainterArtistCollection: ''.toLowerCase(),
-    AlgoPainterArtistCollectionItem: ''.toLowerCase()
+    AlgoPainterArtistCollection: '0xe28C8E83dc7E90439dD6D911eEaF66626e3CFCe2'.toLowerCase(),
+    AlgoPainterArtistCollectionItem: '0x2eFaB249cd75e21833F509c1D186E04fd00a9A6b'.toLowerCase()
   },
   testnet: {
     BUSDToken: '0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee',
