@@ -8,6 +8,8 @@ const AlgoPainterGweiItem = require('../build/contracts/AlgoPainterGweiItem.json
 const AlgoPainterExpressionsItem = require('../build/contracts/AlgoPainterExpressionsItem.json');
 const AlgoPainterPersonalItem = require('../build/contracts/AlgoPainterPersonalItem.json');
 const AlgoPainterNFTCreators = require('../build/contracts/AlgoPainterNFTCreators.json');
+const AlgoPainterArtistCollection = require('../build/contracts/AlgoPainterArtistCollection.json');
+const AlgoPainterArtistCollectionItem = require('../build/contracts/AlgoPainterArtistCollectionItem.json');
 
 const Mongoose = require('mongoose');
 const SettingsContext = require('./db.settings.js');
@@ -34,125 +36,46 @@ const Configurator = function () {
     return transaction
   }
 
-  this.nftCreators = async () => {
-    console.log('=====================================================================================');
-    console.log('Configuring Algo Painter NFT Creators');
-    console.log('=====================================================================================');
-
-    const nftCreators = new web3.eth.Contract(AlgoPainterNFTCreators.abi, contractsAddress.AlgoPainterNFTCreators).methods;
-    if (this.write) {
-      const grantRoleAuctionTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterAuctionSystem);
-      const grantRoleRewardsDistributorTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterRewardsDistributor);
-      const grantRoleRewardsRatesTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterRewardsRates);
-      const grantRolePersonalTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
-      const setCreatorGweiTx = nftCreators.setCreator(contractsAddress.AlgoPainterGweiItem, accounts.gweiCreator);
-      const setCreatorExpressionTx = nftCreators.setCreator(contractsAddress.AlgoPainterExpressionsItem, accounts.expressionsCreator);
-
-      await this.sendTransaction('grantRoleAuctionTx', grantRoleAuctionTx);
-      await this.sendTransaction('grantRolePersonalTx', grantRolePersonalTx);
-      await this.sendTransaction('grantRoleRewardsDistributorTx', grantRoleRewardsDistributorTx);
-      await this.sendTransaction('grantRoleRewardsRatesTx', grantRoleRewardsRatesTx);
-      await this.sendTransaction('setCreatorGweiTx', setCreatorGweiTx);
-      await this.sendTransaction('setCreatorExpressionTx', setCreatorExpressionTx);
-    }
-
-    return {
-      grantRoleAuctionTx: contractsAddress.AlgoPainterAuctionSystem,
-      grantRolePersonalTx: contractsAddress.AlgoPainterPersonalItem,
-      setCreatorGweiTx: await (nftCreators.getCreatorNotPayable(contractsAddress.AlgoPainterGweiItem, 0).call()),
-      setCreatorExpressionTx: await nftCreators.getCreatorNotPayable(contractsAddress.AlgoPainterExpressionsItem, 0).call()
-    }
-  }
-
-  this.personalItem = async () => {
-    console.log('=====================================================================================');
-    console.log('Configuring Algo Painter Personal Item');
-    console.log('=====================================================================================');
-
-    const personal = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contractsAddress.AlgoPainterPersonalItem).methods;
-    const nftCreators = new web3.eth.Contract(AlgoPainterNFTCreators.abi, contractsAddress.AlgoPainterNFTCreators).methods;
-    const rewardRates = new web3.eth.Contract(AlgoPainterRewardsRates.abi, contractsAddress.AlgoPainterRewardsRates).methods;
-    
-    if (this.write) {
-      // const setAlgoPainterNFTCreatorsTx = personal.setAlgoPainterNFTCreators(contractsAddress.AlgoPainterNFTCreators);
-      // const setAlgoPainterRewardsRatesAddressTx = personal.setAlgoPainterRewardsRatesAddress(contractsAddress.AlgoPainterRewardsRates);
-      const approveAuctionSystemTx = personal.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
-      const grantRolePersonalTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
-      const grantRolePersonalItemTx = rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
-
-      // await this.sendTransaction('setAlgoPainterNFTCreatorsTx', setAlgoPainterNFTCreatorsTx);
-      // await this.sendTransaction('setAlgoPainterRewardsRatesAddressTx', setAlgoPainterRewardsRatesAddressTx);
-      await this.sendTransaction('approveAuctionSystemTx', approveAuctionSystemTx);
-      await this.sendTransaction('grantRolePersonalTx', grantRolePersonalTx);
-      await this.sendTransaction('grantRolePersonalItemTx', grantRolePersonalItemTx);
-    }
-
-    return {
-      algoPainterRewardsRates: await (personal.algoPainterRewardsRates().call()),
-    }
-  }
-
   this.auctionSystem = async () => {
     console.log('=====================================================================================');
     console.log('Configuring Auction System');
     console.log('=====================================================================================');
 
     const auction = new web3.eth.Contract(AlgoPainterAuctionSystem.abi, contractsAddress.AlgoPainterAuctionSystem).methods;
-    const gwei = new web3.eth.Contract(AlgoPainterGweiItem.abi, contractsAddress.AlgoPainterGweiItem).methods;
-    const expressions = new web3.eth.Contract(AlgoPainterExpressionsItem.abi, contractsAddress.AlgoPainterExpressionsItem).methods;
-    const personal = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contractsAddress.AlgoPainterPersonalItem).methods;
 
     if (this.write) {
       const setupTx = auction.setup(
-        account,
         contractsAddress.AlgoPainterRewardsDistributor,
-        250,
-        250,
-        [contractsAddress.AlgoPainterToken],
-        contractsAddress.AlgoPainterRewardsRates
+        contractsAddress.AlgoPainterRewardsRates,
+        contractsAddress.AlgoPainterNFTCreators,
       );
 
-      const gweiSetApprovalForAllTx = gwei.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
-      const expressionsSetApprovalForAllTx = expressions.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
-      const personalSetApprovalForAllTx = personal.setApprovalForAll(contractsAddress.AlgoPainterAuctionSystem, true);
-      const setAlgoPainterNFTCreatorsTx = auction.setAlgoPainterNFTCreators(contractsAddress.AlgoPainterNFTCreators);
-
       await this.sendTransaction('setupTx', setupTx);
-      await this.sendTransaction('gweiSetApprovalForAllTx', gweiSetApprovalForAllTx);
-      await this.sendTransaction('expressionsSetApprovalForAllTx', expressionsSetApprovalForAllTx);
-      await this.sendTransaction('personalSetApprovalForAllTx', personalSetApprovalForAllTx);
-      await this.sendTransaction('setAlgoPainterNFTCreatorsTx', setAlgoPainterNFTCreatorsTx);
     }
 
     return {
-      setAddressFee: await (auction.getAddressFee().call()),
-      setAuctionFeeRate: await (auction.getAuctionFeeRate().call()),
-      setBidFeeRate: await (auction.getBidFeeRate().call()),
-      setAllowedTokens: await (auction.getAllowedTokens().call()),
-      setAuctionHook: await (auction.getAuctionHook().call()),
-      setRewardsRates: await (auction.getRewardsRates().call()),
-      setAlgoPainterNFTCreators: await (auction.getAlgoPainterNFTCreators().call()),
+      setup: [
+        contractsAddress.AlgoPainterRewardsDistributor,
+        contractsAddress.AlgoPainterRewardsRates,
+        contractsAddress.AlgoPainterNFTCreators
+      ]
     }
   }
 
-  this.auctionSystemAddToken = async () => {
+  this.rewardsDistributorSystem = async () => {
     console.log('=====================================================================================');
-    console.log('Adding Tokens to Auction System');
+    console.log('Configuring Rewards');
     console.log('=====================================================================================');
-    const auction = new web3.eth.Contract(AlgoPainterAuctionSystem.abi, contractsAddress.AlgoPainterAuctionSystem).methods;
+
+    const rewardsDistributorSystemManager = new web3.eth.Contract(AlgoPainterRewardsDistributor.abi, contractsAddress.AlgoPainterRewardsDistributor).methods;
 
     if (this.write) {
-      const addTokensBTCTx = auction.addAllowedToken("0x6ce8da28e2f864420840cf74474eff5fd80e65b8");
-      const addTokensBUSDTx = auction.addAllowedToken('0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee');
-      const addTokensDAITx = auction.addAllowedToken("0xec5dcb5dbf4b114c9d0f65bccab49ec54f6a0867");
+      const setRewardsRatesProviderAddressTx = rewardsDistributorSystemManager.setRewardsRatesProviderAddress(contractsAddress.AlgoPainterRewardsRates);
 
-      await this.sendTransaction('addTokensBTCTx', addTokensBTCTx);
-      await this.sendTransaction('addTokensBUSDTx', addTokensBUSDTx);
-      await this.sendTransaction('addTokensDAITx', addTokensDAITx);
+      await this.sendTransaction('setRewardsRatesProviderAddressTx', setRewardsRatesProviderAddressTx);
     }
-
     return {
-      addAllowedToken: await (auction.getAllowedTokens().call()),
+      setRewardsRatesProviderAddress: await rewardsDistributorSystemManager.rewardsRatesProvider().call()
     }
   }
 
@@ -164,58 +87,58 @@ const Configurator = function () {
     const rewardRates = new web3.eth.Contract(AlgoPainterRewardsRates.abi, contractsAddress.AlgoPainterRewardsRates).methods;
 
     if (this.write) {
-      const grantRoleAuctionTx = rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterAuctionSystem);
       const grantRolePersonalItemTx = rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
-      const setAuctionSystemAddressTx = rewardRates.setAuctionSystemAddress(contractsAddress.AlgoPainterAuctionSystem);
-      const setMaxPIRSRateTx = rewardRates.setMaxPIRSRate(3000);
-      const setMaxCreatorRoyaltiesRateTx = rewardRates.setMaxCreatorRoyaltiesRate(3000);
-      const setCreatorRoyaltiesRateTx = rewardRates.setCreatorRoyaltiesRate(contractsAddress.AlgoPainterGweiItem, 500);
-      const setCreatorRoyaltiesRateTx2 = rewardRates.setCreatorRoyaltiesRate(contractsAddress.AlgoPainterExpressionsItem, 500);
-      const setMaxBidbackRateTx = rewardRates.setMaxBidbackRate(3000);
-      const setAuctionDistributoAddressTx = rewardRates.setAuctionDistributorAddress(contractsAddress.AlgoPainterRewardsDistributor);
+      const grantRoleArtistCollectionItemTx = rewardRates.grantRole(await rewardRates.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterArtistCollectionItem);
 
-      await this.sendTransaction('grantRoleAuctionTx', grantRoleAuctionTx);
       await this.sendTransaction('grantRolePersonalItemTx', grantRolePersonalItemTx);
-      await this.sendTransaction('setAuctionSystemAddressTx', setAuctionSystemAddressTx);
-      await this.sendTransaction('setMaxCreatorRoyaltiesRateTx', setMaxCreatorRoyaltiesRateTx);
-      await this.sendTransaction('setCreatorRoyaltiesRateTx', setCreatorRoyaltiesRateTx);
-      await this.sendTransaction('setCreatorRoyaltiesRateTx2', setCreatorRoyaltiesRateTx2);
-      await this.sendTransaction('setMaxPIRSRateTx', setMaxPIRSRateTx);
-      await this.sendTransaction('setMaxBidbackRateTx', setMaxBidbackRateTx);
-      await this.sendTransaction('setAuctionDistributoAddressTx', setAuctionDistributoAddressTx);
+      await this.sendTransaction('grantRoleArtistCollectionItemTx', grantRoleArtistCollectionItemTx);
     }
     return {
-      grantRoleAuctionTx: contractsAddress.AlgoPainterAuctionSystem,
-      setAuctionDistributoAddressTx: await rewardRates.getAuctionDistributorAddress().call(),
-      setMaxCreatorRoyaltiesRate: await rewardRates.getMaxCreatorRoyaltiesRate().call(),
-      setCreatorRoyaltiesRateGwei: await rewardRates.getCreatorRoyaltiesByTokenAddress(contractsAddress.AlgoPainterGweiItem).call(),
-      setCreatorRoyaltiesRateExpressions: await rewardRates.getCreatorRoyaltiesByTokenAddress(contractsAddress.AlgoPainterExpressionsItem).call(),
-      setMaxPIRSRate: await rewardRates.getMaxInvestorPirsRate().call(),
-      setMaxBidbackRate: await rewardRates.getMaxBidbackRate().call(),
+      grantRolePersonalItemTx: contractsAddress.AlgoPainterPersonalItem,
+      grantRoleArtistCollectionItemTx: contractsAddress.AlgoPainterArtistCollectionItem,
     }
   }
 
-  this.rewardsDistributorSystem = async () => {
+  this.nftCreators = async () => {
     console.log('=====================================================================================');
-    console.log('Configuring Rewards');
+    console.log('Configuring Algo Painter NFT Creators');
     console.log('=====================================================================================');
-    const rewardsDistributorSystemManager = new web3.eth.Contract(AlgoPainterRewardsDistributor.abi, contractsAddress.AlgoPainterRewardsDistributor).methods;
 
+    const nftCreators = new web3.eth.Contract(AlgoPainterNFTCreators.abi, contractsAddress.AlgoPainterNFTCreators).methods;
     if (this.write) {
-      const setAllowedSenderTx = rewardsDistributorSystemManager.setAllowedSender(contractsAddress.AlgoPainterAuctionSystem)
-      const setStakeTokenTx = rewardsDistributorSystemManager.setStakeToken(contractsAddress.AlgoPainterToken);
-      const setAuctionSystemAddressTx = rewardsDistributorSystemManager.setAuctionSystemAddress(contractsAddress.AlgoPainterAuctionSystem);
-      const setRewardsRatesProviderAddressTx = rewardsDistributorSystemManager.setRewardsRatesProviderAddress(contractsAddress.AlgoPainterRewardsRates);
+      const grantRolePersonalTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterPersonalItem);
+      const grantRoleArtistItemTx = nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE().call(), contractsAddress.AlgoPainterArtistCollectionItem);
 
-      await this.sendTransaction('setAllowedSenderTx', setAllowedSenderTx);
-      await this.sendTransaction('setStakeTokenTx', setStakeTokenTx);
-      await this.sendTransaction('setAuctionSystemAddressTx', setAuctionSystemAddressTx);
-      await this.sendTransaction('setRewardsRatesProviderAddressTx', setRewardsRatesProviderAddressTx);
+      await this.sendTransaction('grantRoleArtistItemTx', grantRoleArtistItemTx);
+      await this.sendTransaction('grantRolePersonalTx', grantRolePersonalTx);
     }
+
     return {
-      setStakeToken: await rewardsDistributorSystemManager.stakeToken().call(),
-      setAuctionSystemAddress: await rewardsDistributorSystemManager.auctionSystem().call(),
-      setRewardsRatesProviderAddress: await rewardsDistributorSystemManager.rewardsRatesProvider().call()
+      grantRoleArtistItemTx: contractsAddress.AlgoPainterArtistCollectionItem,
+      grantRolePersonalTx: contractsAddress.AlgoPainterPersonalItem,
+    }
+  }
+
+  this.personalItem =  async () => {
+    console.log('=====================================================================================');
+    console.log('Configuring Algo Painter Personal Item');
+    console.log('=====================================================================================');
+
+    const personalItem = new web3.eth.Contract(AlgoPainterPersonalItem.abi, contractsAddress.AlgoPainterPersonalItem).methods;
+    if (this.write) {
+      const setMintCostTx = personalItem.setMintCost(0);
+      const setMintTokenTx = personalItem.setMintToken(contractsAddress.AlgoPainterToken);
+      const setMintCostTokenTx = personalItem.setMintCostToken(web3.utils.toWei('17000'));
+
+      await this.sendTransaction('setMintCostTx', setMintCostTx);
+      await this.sendTransaction('setMintTokenTx', setMintTokenTx);
+      await this.sendTransaction('setMintCostTokenTx', setMintCostTokenTx);
+    }
+
+    return {
+      setMintCostTx: await personalItem.mintCost().call(),
+      setMintTokenTx: await personalItem.mintToken().call(),
+      setMintCostTokenTx: await personalItem.mintCostToken().call(),
     }
   }
 
@@ -237,26 +160,19 @@ const Configurator = function () {
           tokens: [
             {
               value: '1',
-              label: 'BTCB',
-              tokenAddress: '0x6ce8da28e2f864420840cf74474eff5fd80e65b8',
-              decimalPlaces: 18,
-              img: '/images/BTC.svg',
-            },
-            {
-              value: '3',
               name: 'AlgoPainter Token',
-              tokenAddress: '0x01a9188076f1231df2215f67b6a63231fe5e293e',
+              tokenAddress: contractsAddress.AlgoPainterToken,
               label: 'ALGOP',
               decimalPlaces: 18,
               img: '/images/ALGOP.svg'
             },
             {
-              value: '6',
-              name: 'DAI',
-              tokenAddress: '0xec5dcb5dbf4b114c9d0f65bccab49ec54f6a0867',
-              label: 'DAI',
+              value: '2',
+              name: 'BUSD',
+              tokenAddress: contractsAddress.BUSDToken,
+              label: 'BUSD',
               decimalPlaces: 18,
-              img: '/images/DAI.svg'
+              img: '/images/BUSD.svg'
             }
           ],
           smartcontracts: [
@@ -325,6 +241,39 @@ const Configurator = function () {
               blockExplorer: blockExplorer,
               abi: AlgoPainterPersonalItem.abi,
               inUse: true
+            },
+            {
+              address: contractsAddress.AlgoPainterNFTCreators,
+              name: 'AlgoPainterNFTCreators',
+              symbol: 'APNFTC',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterPersonalItem.abi,
+              inUse: true
+            },
+            {
+              address: contractsAddress.AlgoPainterArtistCollection,
+              name: 'AlgoPainterArtistCollection',
+              symbol: 'APAC',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterArtistCollection.abi,
+              inUse: true
+            },
+            {
+              address: contractsAddress.AlgoPainterArtistCollectionItem,
+              name: 'AlgoPainterArtistCollectionItem',
+              symbol: 'APACI',
+              network: chainID,
+              rpc: rpcUrl,
+              startingBlock: currentBlock,
+              blockExplorer: blockExplorer,
+              abi: AlgoPainterArtistCollectionItem.abi,
+              inUse: true
             }
           ]
         });
@@ -350,14 +299,13 @@ const Configurator = function () {
   try {
     Configurator.write = true;
 
-    console.log(await Configurator.nftCreators());
-    console.log(await Configurator.personalItem());
-    console.log(await Configurator.auctionSystem());
-    console.log(await Configurator.auctionSystemAddToken());
-    console.log(await Configurator.rewardRatesSystem());
-    console.log(await Configurator.rewardsDistributorSystem());
-    console.log(await Configurator.reloadSettings());
-    console.log(contractsAddress);
+     console.log(await Configurator.nftCreators());
+    // console.log(await Configurator.auctionSystem());
+    // console.log(await Configurator.rewardsDistributorSystem());
+     console.log(await Configurator.rewardRatesSystem());
+    // console.log(await Configurator.personalItem());
+     console.log(await Configurator.reloadSettings());
+     console.log(contractsAddress);
 
   } catch (error) {
     console.error(error);

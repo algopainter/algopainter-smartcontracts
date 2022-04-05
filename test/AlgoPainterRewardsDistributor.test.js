@@ -1,6 +1,6 @@
 const sleep = require('sleep');
 
-contract.only('AlgoPainterRewardsDistributor', (accounts) => {
+contract('AlgoPainterRewardsDistributor', (accounts) => {
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');
   const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
   const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
@@ -21,8 +21,18 @@ contract.only('AlgoPainterRewardsDistributor', (accounts) => {
   it('Setup auction and rewards system', async () => {
     algopToken = await AlgoPainterToken.new('ALGOP', 'ALGOP');
     gwei = await AlgoPainterGweiItem.new(algopToken.address, GWEI_OWNER_ACCOUNT);
-    auctionSystem = await AlgoPainterAuctionSystem.new('1209600');
-    rewardsDistributor = await AlgoPainterRewardsDistributor.new('1209600');
+    auctionSystem = await AlgoPainterAuctionSystem.new(
+      '1209600',
+      AUCTION_FEE_ACCOUNT,
+      1000,
+      500,
+      [algopToken.address]
+    );
+    rewardsDistributor = await AlgoPainterRewardsDistributor.new(
+      '1209600',
+      auctionSystem.address,
+      algopToken.address
+    );
     rewardsRatesMOCK = await AuctionRewardsRatesProviderMOCK.new();
     nftCreators = await AlgoPainterNFTCreators.new();
 
@@ -30,13 +40,10 @@ contract.only('AlgoPainterRewardsDistributor', (accounts) => {
     await gwei.mint(1, 'new text', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI');
     await gwei.setApprovalForAll(auctionSystem.address, true);
 
-    await auctionSystem.setup(AUCTION_FEE_ACCOUNT, rewardsDistributor.address, 1000, 500, [algopToken.address], rewardsRatesMOCK.address);
-    await auctionSystem.setAlgoPainterNFTCreators(nftCreators.address);
+    await auctionSystem.setup(rewardsDistributor.address, rewardsRatesMOCK.address, nftCreators.address);
     await rewardsRatesMOCK.grantRole(await rewardsRatesMOCK.CONFIGURATOR_ROLE(), auctionSystem.address);
     await nftCreators.grantRole(await nftCreators.CONFIGURATOR_ROLE(), auctionSystem.address);
 
-    await rewardsDistributor.setAuctionSystemAddress(auctionSystem.address);
-    await rewardsDistributor.setStakeToken(algopToken.address);
     await rewardsDistributor.setRewardsRatesProviderAddress(rewardsRatesMOCK.address);
 
     const baseAmount = web3.utils.toWei('1000000', 'ether');
