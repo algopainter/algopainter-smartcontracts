@@ -1,0 +1,3 @@
+contract.only('AlgoPainterExternal', accounts => {
+
+});

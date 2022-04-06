@@ -1,4 +1,4 @@
-contract.only('AlgoPainterArtistCollection', accounts => {
+contract('AlgoPainterArtistCollection', accounts => {
   const AlgoPainterArtistCollection = artifacts.require('AlgoPainterArtistCollection');
   const AlgoPainterArtistCollectionItem = artifacts.require('AlgoPainterArtistCollectionItem');
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');

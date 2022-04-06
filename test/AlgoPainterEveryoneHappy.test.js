@@ -1,5 +1,5 @@
 //This is a happy scenario testing no mocks
-contract('AlgoPainterEveryoneHappy', accounts => {
+contract.only('AlgoPainterEveryoneHappy', accounts => {
     const sleep = require('sleep');
     const AlgoPainterToken = artifacts.require('AlgoPainterToken');
     const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
@@ -7,14 +7,19 @@ contract('AlgoPainterEveryoneHappy', accounts => {
     const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
     const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
     const AlgoPainterRewardsDistributor = artifacts.require('AlgoPainterRewardsDistributor');
+    const AlgoPainterExternalNFTManager = artifacts.require('AlgoPainterExternalNFTManager');
+    const AlgoPainterStorage = artifacts.require('AlgoPainterStorage');
 
     const contracts = {
         ALGOP: null,
         Gwei: null,
+        Gwei2: null,
         AuctionSystem: null,
         RewardsRates: null,
         NFTCreators: null,
-        RewardsDistributor: null
+        RewardsDistributor: null,
+        ExternalNFTManager: null,
+        Storage: null
     }
 
     const DEV_FEE = '250'; // 2.5%
@@ -38,7 +43,9 @@ contract('AlgoPainterEveryoneHappy', accounts => {
     it('Should initiate Contracts', async () => {
         contracts.ALGOP = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
         contracts.Gwei = await AlgoPainterGweiItem.new(contracts.ALGOP.address, GWEI_DEV);
+        contracts.Gwei2 = await AlgoPainterGweiItem.new(contracts.ALGOP.address, GWEI_DEV);
         contracts.NFTCreators = await AlgoPainterNFTCreators.new();
+        contracts.Storage = await AlgoPainterStorage.new();
         contracts.AuctionSystem = await AlgoPainterAuctionSystem.new(
             '1209600',
             DEV_FEE_ACCOUNT,
@@ -63,19 +70,31 @@ contract('AlgoPainterEveryoneHappy', accounts => {
             CREATOR_RATE,
             CREATOR_RATE
         );
+        contracts.ExternalNFTManager = await AlgoPainterExternalNFTManager.new(
+            contracts.Storage.address,
+            contracts.RewardsRates.address,
+            contracts.NFTCreators.address
+        );
 
         await contracts.NFTCreators.setCreator(contracts.Gwei.address, GWEI_CREATOR);
 
         await contracts.AuctionSystem.setup(
-            contracts.RewardsDistributor.address, 
-            contracts.RewardsRates.address, 
+            contracts.RewardsDistributor.address,
+            contracts.RewardsRates.address,
             contracts.NFTCreators.address
         );
 
         await contracts.RewardsDistributor.setRewardsRatesProviderAddress(contracts.RewardsRates.address);
         await contracts.RewardsRates.setAuctionSystemAddress(contracts.AuctionSystem.address);
         await contracts.RewardsRates.setAuctionDistributorAddress(contracts.RewardsDistributor.address);
-        //await contracts.RewardsRates.grantRole(CONFIGURATOR_ROLE, _auctionSystem); //PERSONAL ITEM
+
+        await contracts.RewardsRates.grantRole(await contracts.RewardsRates.CONFIGURATOR_ROLE(), contracts.ExternalNFTManager.address);
+        await contracts.NFTCreators.grantRole(await contracts.NFTCreators.CONFIGURATOR_ROLE(), contracts.ExternalNFTManager.address);
+        await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.ExternalNFTManager.address);
+
+        await contracts.ExternalNFTManager.addInitialContracts([
+            contracts.Gwei.address
+        ]);
 
         await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true);
         await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_ONE });
@@ -86,7 +105,8 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         await contracts.Gwei.setApprovalForAll(USER_TWO, true);
         await contracts.Gwei.setApprovalForAll(USER_THREE, true);
         await contracts.Gwei.setApprovalForAll(USER_FOUR, true);
-        await contracts.Gwei.manageWhitelist([USER_ONE], true);
+        await contracts.Gwei.manageWhitelist([USER_ONE, USER_TWO], true);
+        await contracts.Gwei2.manageWhitelist([USER_ONE, USER_TWO], true);
 
         await contracts.ALGOP.transfer(USER_ONE, web3.utils.toWei('10000', 'ether'));
         await contracts.ALGOP.transfer(USER_TWO, web3.utils.toWei('10000', 'ether'));
@@ -94,6 +114,8 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         await contracts.ALGOP.transfer(USER_FOUR, web3.utils.toWei('10000', 'ether'));
         await contracts.ALGOP.approve(contracts.Gwei.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
         await contracts.ALGOP.approve(contracts.Gwei.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
+        await contracts.ALGOP.approve(contracts.Gwei2.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
+        await contracts.ALGOP.approve(contracts.Gwei2.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
         await contracts.ALGOP.approve(contracts.AuctionSystem.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
         await contracts.ALGOP.approve(contracts.RewardsDistributor.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
         await contracts.ALGOP.approve(contracts.AuctionSystem.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
@@ -192,4 +214,23 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         await assertBalance(USER_FOUR, web3.utils.toWei('9750', 'ether'));
         await assertBalance(GWEI_CREATOR, web3.utils.toWei('150', 'ether'));
     });
+
+    it('Should mint more NFTS for external adding', async () => {
+        await contracts.Gwei2.mint(1, 'new text 1', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI', { from: USER_ONE });
+        await contracts.Gwei2.mint(1, 'new text 2', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI', { from: USER_ONE });
+        await contracts.Gwei2.mint(1, 'new text 3', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI', { from: USER_TWO });
+
+        await contracts.ExternalNFTManager.registerNFTContract(contracts.Gwei2.address, [2], 300, { from: USER_TWO });
+
+        expect(USER_TWO).to.be.equal(await contracts.NFTCreators.getCreatorNotPayable(contracts.Gwei2.address, 0));
+        expect('300').to.be.equal((await contracts.RewardsRates.getCreatorRate(contracts.Gwei2.address, 0)).toString());
+        expect('true').to.be.equal((await contracts.Storage.getBool(web3.utils.soliditySha3(contracts.Gwei2.address))).toString());
+
+        try {
+            await contracts.ExternalNFTManager.registerNFTContract(contracts.Gwei.address, [2], 300, { from: USER_ONE });
+            throw {};
+        } catch (e) {
+            expect(e.reason).to.be.equal('CONTRACT_ALREADY_ADDED');
+        }
+    })
 });
