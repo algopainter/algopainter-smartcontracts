@@ -5,9 +5,10 @@ import "./accessControl/AlgoPainterSimpleAccessControl.sol";
 import "./interfaces/IAuctionHook.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
-import "./interfaces/IAlgoPainterRewardsDistributor.sol";
+import "./interfaces/IAuctionRewardsDistributor.sol";
 import "./interfaces/IAlgoPainterAuctionSystem.sol";
 import "./interfaces/IAlgoPainterStorage.sol";
+import "./interfaces/ISecurity.sol";
 
 contract AlgoPainterAuctionHook is
     AlgoPainterSimpleAccessControl,
@@ -16,10 +17,10 @@ contract AlgoPainterAuctionHook is
     bytes32 public constant HOOK_CALLER_ROLE = keccak256("HOOK_CALLER_ROLE");
 
     IAuctionRewardsRates public proxyRates;
-    IAlgoPainterRewardsDistributor public proxyDistributor;
+    IAuctionRewardsDistributor public proxyDistributor;
     IAlgoPainterNFTCreators public proxyNFTCreators;
-    IAlgoPainterAuctionSystem public proxyAuction;
     IAlgoPainterStorage public proxyStorage;
+    ISecurity public proxySecurity;
 
     function setStorage(address adr) public onlyRole(CONFIGURATOR_ROLE) {
         proxyStorage = IAlgoPainterStorage(adr);
@@ -30,15 +31,15 @@ contract AlgoPainterAuctionHook is
     }
 
     function setDistributor(address adr) public onlyRole(CONFIGURATOR_ROLE) {
-        proxyDistributor = IAlgoPainterRewardsDistributor(adr);
+        proxyDistributor = IAuctionRewardsDistributor(adr);
     }
 
     function setNFTCreators(address adr) public onlyRole(CONFIGURATOR_ROLE) {
         proxyNFTCreators = IAlgoPainterNFTCreators(adr);
     }
 
-    function setAuction(address adr) public onlyRole(CONFIGURATOR_ROLE) {
-        proxyAuction = IAlgoPainterAuctionSystem(adr);
+    function setSecurity(address adr) public onlyRole(CONFIGURATOR_ROLE) {
+        proxySecurity = ISecurity(adr);
     }
 
     function setAll(address[] calldata addresses)
@@ -48,8 +49,8 @@ contract AlgoPainterAuctionHook is
         setRates(addresses[0]);
         setDistributor(addresses[1]);
         setNFTCreators(addresses[2]);
-        setAuction(addresses[3]);
-        setStorage(addresses[4]);
+        setStorage(addresses[3]);
+        setSecurity(addresses[4]);
     }
 
     function onAuctionCreated(
@@ -57,16 +58,40 @@ contract AlgoPainterAuctionHook is
         address owner,
         address nftAddress,
         uint256 nftTokenId,
-        address tokenPriceAddress
-    ) external override onlyRole(HOOK_CALLER_ROLE) {
-        IAuctionHook proxyHook = IAuctionHook(address(proxyDistributor));
-        proxyHook.onAuctionCreated(
-            auctionId,
-            owner,
-            nftAddress,
-            nftTokenId,
-            tokenPriceAddress
+        uint256 bidbackRate,
+        uint256 creatorRate,
+        uint256 pirsRate,
+        address tokenPriceAddress,
+        uint256 price
+    ) public override onlyRole(HOOK_CALLER_ROLE) {
+        require(
+            !proxySecurity.isBanned(tx.origin) ||
+                !proxySecurity.isBannedByContract(msg.sender, tx.origin),
+            "BLACKLISTED"
         );
+
+        bool nftPIRSRate = proxyRates.hasPIRSRateSetPerImage(
+            nftAddress,
+            nftTokenId
+        );
+
+        if (!nftPIRSRate) {
+            proxyRates.setPIRSRate(nftAddress, nftTokenId, pirsRate);
+        }
+
+        proxyRates.setBidbackRate(auctionId, bidbackRate);
+
+        bool hasCreatorRateSet = proxyRates.isCreatorRateSet(
+            nftAddress,
+            nftTokenId
+        );
+
+        if (!hasCreatorRateSet) {
+            proxyRates.setCreatorRoyaltiesRate(
+                keccak256(abi.encodePacked(nftAddress, nftTokenId)),
+                creatorRate
+            );
+        }
     }
 
     function onBid(
@@ -76,8 +101,12 @@ contract AlgoPainterAuctionHook is
         uint256 feeAmount,
         uint256 netAmount
     ) external override onlyRole(HOOK_CALLER_ROLE) {
-        IAuctionHook proxyHook = IAuctionHook(address(proxyDistributor));
-        proxyHook.onBid(auctionId, bidder, amount, feeAmount, netAmount);
+        require(
+            !proxySecurity.isBanned(tx.origin) ||
+                !proxySecurity.isBannedByContract(msg.sender, tx.origin),
+            "BLACKLISTED"
+        );
+        proxyDistributor.addEligibleBidder(auctionId, bidder);
     }
 
     function onBidWithdraw(
@@ -85,8 +114,7 @@ contract AlgoPainterAuctionHook is
         address owner,
         uint256 amount
     ) external override onlyRole(HOOK_CALLER_ROLE) {
-        IAuctionHook proxyHook = IAuctionHook(address(proxyDistributor));
-        proxyHook.onBidWithdraw(auctionId, owner, amount);
+        proxyDistributor.remAccountFromBidRewards(auctionId, owner);
     }
 
     function onAuctionEnded(
@@ -95,16 +123,12 @@ contract AlgoPainterAuctionHook is
         uint256 bidAmount,
         uint256 feeAmount,
         uint256 rewardsAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        uint256 creatorAmount
     ) external override onlyRole(HOOK_CALLER_ROLE) {
-        IAuctionHook proxyHook = IAuctionHook(address(proxyDistributor));
-        proxyHook.onAuctionEnded(
+        proxyDistributor.setAuctionRewardsDistributable(
             auctionId,
-            winner,
-            bidAmount,
-            feeAmount,
-            rewardsAmount,
-            netAmount
+            rewardsAmount
         );
     }
 
@@ -112,11 +136,5 @@ contract AlgoPainterAuctionHook is
         external
         override
         onlyRole(HOOK_CALLER_ROLE)
-    {
-        IAuctionHook proxyHook = IAuctionHook(address(proxyDistributor));
-        proxyHook.onAuctionCancelled(
-            auctionId,
-            owner
-        );
-    }
+    {}
 }

@@ -7,7 +7,11 @@ interface IAuctionHook {
         address owner,
         address nftAddress,
         uint256 nftTokenId,
-        address tokenPriceAddress
+        uint256 bidbackRate,
+        uint256 creatorRate,
+        uint256 pirsRate,
+        address tokenPriceAddress,
+        uint256 price
     ) external;
 
     function onBid(
@@ -30,7 +34,8 @@ interface IAuctionHook {
         uint256 bidAmount,
         uint256 feeAmount,
         uint256 rewardsAmount,
-        uint256 netAmount
+        uint256 netAmount,
+        uint256 creatorAmount
     ) external;
 
     function onAuctionCancelled(

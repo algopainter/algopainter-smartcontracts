@@ -19,6 +19,8 @@ const AlgoPainterRewardsRates = require('../build/contracts/AlgoPainterRewardsRa
 const AlgoPainterRewardsDistributor = require('../build/contracts/AlgoPainterRewardsDistributor.json');
 const AlgoPainterArtistCollection = require('../build/contracts/AlgoPainterArtistCollection.json');
 const AlgoPainterArtistCollectionItem = require('../build/contracts/AlgoPainterArtistCollectionItem.json');
+const AlgoPainterExternalNFTManager = require('../build/contracts/AlgoPainterExternalNFTManager.json');
+const AlgoPainterStorage = require('../build/contracts/AlgoPainterStorage.json');
 
 const deploy = async (contract, args) => {
   const instance = new web3.eth.Contract(contract.abi);
@@ -85,29 +87,38 @@ const deploy = async (contract, args) => {
     //   account
     // ]);
 
-    const algoPainterArtistCollectionTransaction = await deploy(AlgoPainterArtistCollection, [
-      emergencyInterval,
-      //algoPainterRewardsRatesTransaction.contractAddress,
-      contractsAddress.AlgoPainterRewardsRates,
-      account,
-      web3.utils.toWei('17000', 'ether'),
-      contractsAddress.AlgoPainterToken,
-      '7776000',
-      '1',
-      '1000',
-      [contractsAddress.AlgoPainterToken, contractsAddress.BUSDToken]
-    ]);
+    // const algoPainterArtistCollectionTransaction = await deploy(AlgoPainterArtistCollection, [
+    //   emergencyInterval,
+    //   //algoPainterRewardsRatesTransaction.contractAddress,
+    //   contractsAddress.AlgoPainterRewardsRates,
+    //   account,
+    //   web3.utils.toWei('17000', 'ether'),
+    //   contractsAddress.AlgoPainterToken,
+    //   '7776000',
+    //   '1',
+    //   '1000',
+    //   [contractsAddress.AlgoPainterToken, contractsAddress.BUSDToken]
+    // ]);
 
-    const algoPainterArtistCollectionItemTransaction = await deploy(AlgoPainterArtistCollectionItem, [
-      contractsAddress.AlgoPainterNFTCreators,
-      //algoPainterRewardsRatesTransaction.contractAddress,
+    // const algoPainterArtistCollectionItemTransaction = await deploy(AlgoPainterArtistCollectionItem, [
+    //   contractsAddress.AlgoPainterNFTCreators,
+    //   //algoPainterRewardsRatesTransaction.contractAddress,
+    //   contractsAddress.AlgoPainterRewardsRates,
+    //   algoPainterArtistCollectionTransaction.contractAddress,
+    //   contractsAddress.AlgoPainterAuctionSystem,
+    //   account,
+    //   fees.auction,
+    //   '0'
+    // ]);
+
+    const algoPainterStorageTransaction = await deploy(AlgoPainterStorage);
+
+    const algoPainterExternalNFTTransaction = await deploy(AlgoPainterExternalNFTManager, [
+      algoPainterStorageTransaction.contractAddress,
       contractsAddress.AlgoPainterRewardsRates,
-      algoPainterArtistCollectionTransaction.contractAddress,
-      contractsAddress.AlgoPainterAuctionSystem,
-      account,
-      fees.auction,
-      '0'
+      contractsAddress.AlgoPainterNFTCreators,
     ]);
+    
   } catch (e) {
     console.error(e)
   }

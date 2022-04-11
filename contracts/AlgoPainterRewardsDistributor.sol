@@ -6,24 +6,23 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./AlgoPainterContractBase.sol";
 import "./interfaces/IAlgoPainterAuctionSystem.sol";
-import "./interfaces/IAuctionHook.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
-import "./interfaces/IAlgoPainterRewardsDistributor.sol";
+import "./interfaces/IAuctionRewardsDistributor.sol";
+import "./interfaces/IAuctionRewardsDistributorHook.sol";
 
 contract AlgoPainterRewardsDistributor is
     AlgoPainterContractBase,
-    IAlgoPainterRewardsDistributor,
-    IAuctionHook
+    IAuctionRewardsDistributor
 {
     using SafeMath for uint256;
 
     uint256 constant ONE_HUNDRED_PERCENT = 10**4;
-    uint256 MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 MAX_INT = 2**256 - 1;
 
     IERC20 public stakeToken;
-    address public allowedSender;
     IAlgoPainterAuctionSystem public auctionSystem;
     IAuctionRewardsRates public rewardsRatesProvider;
+    IAuctionRewardsDistributorHook public proxyHook;
 
     mapping(address => mapping(uint256 => mapping(address => bool))) oldOwnersUsersMapping;
 
@@ -69,7 +68,6 @@ contract AlgoPainterRewardsDistributor is
     ) AlgoPainterContractBase(_emergencyTimeInterval)
     {
         setAuctionSystemAddress(_auctionSystem);
-        setAllowedSender(_auctionSystem);
         setStakeToken(_stakeToken);
     }
 
@@ -79,34 +77,35 @@ contract AlgoPainterRewardsDistributor is
 
     function setStakeToken(address _tokenAddress)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         stakeToken = IERC20(_tokenAddress);
     }
 
-    function setAllowedSender(address _allowedSender)
+    function setHook(address _adr)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
-        allowedSender = _allowedSender;
+        proxyHook = IAuctionRewardsDistributorHook(_adr);
     }
 
     function setAuctionSystemAddress(address _auctionSystemAddress)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         auctionSystem = IAlgoPainterAuctionSystem(_auctionSystemAddress);
     }
 
     function setRewardsRatesProviderAddress(
         address _rewardsRatesProviderAddress
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public onlyRole(CONFIGURATOR_ROLE) {
         rewardsRatesProvider = IAuctionRewardsRates(
             _rewardsRatesProviderAddress
         );
     }
 
     function getTotalBidbackStakes(uint256 auctionId)
+        override
         public
         view
         returns (uint256)
@@ -115,6 +114,7 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function getTotalPirsStakes(uint256 auctionId)
+        override
         public
         view
         returns (uint256)
@@ -123,6 +123,7 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function getBidbackUsers(uint256 auctionId)
+        override
         public
         view
         returns (address[] memory)
@@ -131,6 +132,7 @@ contract AlgoPainterRewardsDistributor is
     }
 
     function getBidbackPercentages(uint256 auctionId)
+        override
         public
         view
         returns (address[] memory users, uint256[] memory percentages)
@@ -155,58 +157,35 @@ contract AlgoPainterRewardsDistributor is
         return (bidbackUsers[auctionKey(auctionId)], amountsList);
     }
 
-    function onAuctionCreated(
+    function addEligibleBidder(
         uint256 auctionId,
-        address owner,
-        address nftAddress,
-        uint256 nftTokenId,
-        address tokenPriceAddress
-    ) external override {}
-
-    function onBid(
-        uint256 auctionId,
-        address bidder,
-        uint256 amount,
-        uint256 feeAmount,
-        uint256 netAmount
-    ) external override {
-        require(msg.sender == allowedSender, "INVALID_SENDER");
-
+        address bidder
+    ) override public onlyRole(CONFIGURATOR_ROLE) {
         auctionUsersWithBids[auctionKey(auctionId)][bidder] = true;
     }
 
-    function onBidWithdraw(
+    function remAccountFromBidRewards(
         uint256 auctionId,
-        address owner,
-        uint256 amount
-    ) external override {
-        require(msg.sender == allowedSender, "INVALID_SENDER");
+        address account
+    ) override public onlyRole(CONFIGURATOR_ROLE) {
+        bidbackUsersMapping[auctionKey(auctionId)][account] = false;
+        auctionUsersWithBids[auctionKey(auctionId)][account] = false;
 
-        bidbackUsersMapping[auctionKey(auctionId)][owner] = false;
-        auctionUsersWithBids[auctionKey(auctionId)][owner] = false;
-
-        if (bidbackStakes[auctionKey(auctionId)][owner] > 0) {
+        if (bidbackStakes[auctionKey(auctionId)][account] > 0) {
             unstakeBidBackFromAccount(
                 auctionId,
-                owner,
-                bidbackStakes[auctionKey(auctionId)][owner]
+                account,
+                bidbackStakes[auctionKey(auctionId)][account]
             );
         }
     }
 
-    function onAuctionEnded(
+    function setAuctionRewardsDistributable(
         uint256 auctionId,
-        address winner,
-        uint256 bidAmount,
-        uint256 feeAmount,
-        uint256 rewardsAmount,
-        uint256 netAmount
-    ) external override {
-        require(msg.sender == allowedSender, "INVALID_SENDER");
-
+        uint256 rewardsAmount
+    ) override public onlyRole(CONFIGURATOR_ROLE) {
         (
             address beneficiary,
-            ,
             address tokenAddress,
             uint256 tokenId,
             ,
@@ -221,21 +200,10 @@ contract AlgoPainterRewardsDistributor is
         auctionRewardsAmount[auctionKey(auctionId)] = rewardsAmount;
     }
 
-    function onAuctionCancelled(uint256 auctionId, address owner)
-        external
-        override
-    {
-        // require(
-        //     msg.sender == allowedSender,
-        //     "INVALID_SENDER"
-        // );
-    }
-
     function stakeBidback(uint256 auctionId, uint256 amount) external {
         require (getInEmncyState() == false, "NOT_AVAILABLE");
 
         (
-            ,
             ,
             ,
             ,
@@ -281,6 +249,10 @@ contract AlgoPainterRewardsDistributor is
             msg.sender,
             bidbackStakes[auctionKey(auctionId)][msg.sender]
         );
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onStakeBidback(auctionId, amount, bidbackStakes[auctionKey(auctionId)][msg.sender]);
+        }
     }
 
     function unstakeBidback(uint256 auctionId, uint256 amount) public {
@@ -311,13 +283,16 @@ contract AlgoPainterRewardsDistributor is
             account,
             bidbackStakes[auctionKey(auctionId)][account]
         );
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onUnstakeBidback(auctionId, amount, bidbackStakes[auctionKey(auctionId)][account]);    
+        }
     }
 
     function stakePirs(uint256 auctionId, uint256 amount) external {
         require (getInEmncyState() == false, "NOT_AVAILABLE");
         
         (
-            ,
             ,
             address tokenAddress,
             uint256 tokenId,
@@ -361,6 +336,10 @@ contract AlgoPainterRewardsDistributor is
             msg.sender,
             pirsStakes[auctionKey(auctionId)][msg.sender]
         );
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onStakePirs(auctionId, amount, pirsStakes[auctionKey(auctionId)][msg.sender]);   
+        }
     }
 
     function unstakePirs(uint256 auctionId, uint256 amount) external {
@@ -389,6 +368,10 @@ contract AlgoPainterRewardsDistributor is
             msg.sender,
             pirsStakes[auctionKey(auctionId)][msg.sender]
         );
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onUnstakePirs(auctionId, amount, pirsStakes[auctionKey(auctionId)][msg.sender]);
+        }
     }
 
     function computeBidbackPercentages(uint256 auctionId) private {
@@ -469,7 +452,6 @@ contract AlgoPainterRewardsDistributor is
             ,
             ,
             ,
-            ,
             IERC20 tokenPriceAddress,
             IAlgoPainterAuctionSystem.AuctionState state,
             ,
@@ -515,6 +497,10 @@ contract AlgoPainterRewardsDistributor is
         );
 
         emit BidbackClaimed(auctionId, msg.sender, bidbackEarnings);
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onBidbackClaimed(auctionId, bidbackEarnings);
+        }
     }
 
     function claimPirs(uint256 auctionId) external {
@@ -524,7 +510,6 @@ contract AlgoPainterRewardsDistributor is
         );
 
         (
-            ,
             ,
             ,
             ,
@@ -575,11 +560,15 @@ contract AlgoPainterRewardsDistributor is
         );
 
         emit PIRSClaimed(auctionId, msg.sender, pirsEarnings);
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onPIRSClaimed(auctionId, pirsEarnings);
+        }
     }
 
     function emergencyTransfer(address tokenAddress)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
         inEmergencyOwner()
     {
         address payable self = payable(address(this));

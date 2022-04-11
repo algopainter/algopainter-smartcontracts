@@ -1,3 +1,0 @@
-contract.only('AlgoPainterExternal', accounts => {
-
-});
