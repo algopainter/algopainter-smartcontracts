@@ -2,6 +2,7 @@
 pragma solidity ^0.7.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./AlgoPainterContractBase.sol";
@@ -12,7 +13,8 @@ import "./interfaces/IAlgoPainterNFTCreators.sol";
 
 contract AlgoPainterAuctionSystem is
     AlgoPainterContractBase,
-    IAlgoPainterAuctionSystem
+    IAlgoPainterAuctionSystem,
+    ERC721Holder
 {
     using SafeMath for uint256;
     uint256 constant ONE_HUNDRED_PERCENT = 10**4;
@@ -84,11 +86,14 @@ contract AlgoPainterAuctionSystem is
         address _devAddress,
         uint256 _auctionFeeRate,
         uint256 _bidFeeRate,
-        IERC20[] memory _allowedTokens
+        IERC20[] memory _allowedTokens,
+        address _hookAddress
     ) AlgoPainterContractBase(_emergencyTimeInterval) {
-        devAddress = _devAddress;
-        auctionFeeRate = _auctionFeeRate;
-        bidFeeRate = _bidFeeRate;
+        setDevAddress(_devAddress);
+        setAuctionFee(_auctionFeeRate);
+        setBidFeeRate(_bidFeeRate);
+        setHook(_hookAddress);
+
         allowedTokens = _allowedTokens;
 
         for (uint256 i = 0; i < allowedTokens.length; i++) {
@@ -160,17 +165,11 @@ contract AlgoPainterAuctionSystem is
         rewardsDistributorAddress = _rewardsDistributorAddress;
     }
 
-    function setHook(address _adr)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
+    function setHook(address _adr) public onlyRole(CONFIGURATOR_ROLE) {
         proxyHook = IAuctionHook(_adr);
     }
 
-    function setRates(address _adr)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
+    function setRates(address _adr) public onlyRole(CONFIGURATOR_ROLE) {
         proxyRates = IAuctionRewardsRates(_adr);
     }
 
@@ -189,10 +188,7 @@ contract AlgoPainterAuctionSystem is
         bidFeeRate = fee;
     }
 
-    function setCreators(address _adr)
-        public
-        onlyRole(CONFIGURATOR_ROLE)
-    {
+    function setCreators(address _adr) public onlyRole(CONFIGURATOR_ROLE) {
         proxyCreators = IAlgoPainterNFTCreators(_adr);
     }
 
@@ -380,9 +376,7 @@ contract AlgoPainterAuctionSystem is
         )
     {
         uint256 rewardsRate = proxyRates.getRewardsRate(_auctionId);
-        uint256 creatorRate = proxyRates.getCreatorRoyaltiesRate(
-            _auctionId
-        );
+        uint256 creatorRate = proxyRates.getCreatorRoyaltiesRate(_auctionId);
 
         feeAmount = _amount.mul(auctionFeeRate).div(ONE_HUNDRED_PERCENT);
         creatorAmount = _amount.mul(creatorRate).div(ONE_HUNDRED_PERCENT);

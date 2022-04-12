@@ -131,11 +131,6 @@ contract AlgoPainterRewardsRates is
         );
 
         require(
-            msg.sender == address(auctionSystem),
-            "SENDER_IS_NOT_AUCTION_CONTRACT"
-        );
-
-        require(
             _bidbackRate <= maxBidbackRate,
             "BIDBACK_IS_GREATER_THAN_ALLOWED"
         );
