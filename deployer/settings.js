@@ -51,7 +51,6 @@ const contractsAddress = {
     AlgoPainterArtistCollection: '0xe28C8E83dc7E90439dD6D911eEaF66626e3CFCe2'.toLowerCase(),
     AlgoPainterArtistCollectionItem: '0x2eFaB249cd75e21833F509c1D186E04fd00a9A6b'.toLowerCase(),
     AlgoPainterStorage: '0xE09B84f3A4724033f5f6C5e4e407Cf6aAc555098'.toLowerCase(),
-    AlgoPainterExternalNFTManager: '0xe5bCcf68377A4763009B035E77035f140fD1a960'.toLowerCase(),
   },
   testnet: {
     BUSDToken: '0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee',
@@ -66,7 +65,8 @@ const contractsAddress = {
     AlgoPainterArtistCollection: '0x00d24cE10aa99a8991eDfcd0a0D7106e40A306c3'.toLowerCase(),
     AlgoPainterArtistCollectionItem: '0x0424Ae45DAd79461c4D0941c8CfbbF42eE6f8cB5'.toLowerCase(),
     AlgoPainterStorage: '0x8Ce52E1592B1819B7A9cD6B661574E5fDC68F514'.toLowerCase(),
-    AlgoPainterExternalNFTManager: '0x804a9022CB4e657dF85ba83A8aDef6fd7a78aA9e'.toLowerCase(),
+    AlgoPainterSecurity: ''.toLowerCase(),
+    AlgoPainterAuctionHook: ''.toLowerCase(),
   }
 };
 
