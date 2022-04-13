@@ -1,119 +1,230 @@
 contract('AlgoPainterRewardsRates', accounts => {
-  const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
-  const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
-  const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
+  const sleep = require('sleep');
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');
-  const AuctionHookMOCK = artifacts.require('AuctionHookMOCK');
+  const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
+  const AlgoPainterAuctionSystem = artifacts.require('AlgoPainterAuctionSystem');
+  const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
   const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
+  const AlgoPainterRewardsDistributor = artifacts.require('AlgoPainterRewardsDistributor');
+  const AlgoPainterStorage = artifacts.require('AlgoPainterStorage');
+  const AlgoPainterSecurity = artifacts.require('AlgoPainterSecurity');
+  const AlgoPainterAuctionSystemHook = artifacts.require('AlgoPainterAuctionHook');
 
-  let algop = null;
-  let auction = null;
-  let rewardRates = null;
-  let gwei = null;
+  const contracts = {
+      ALGOP: null,
+      Gwei: null,
+      AuctionSystem: null,
+      AuctionSystemHook: null,
+      RewardsRates: null,
+      NFTCreators: null,
+      RewardsDistributor: null,
+      RewardsDistributorHook: null,
+      Storage: null,
+      Security: null
+  }
 
-  it('should deploy the contracts', async () => {
-    algop = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
-    nftCreators = await AlgoPainterNFTCreators.new();
-    gwei = await AlgoPainterGweiItem.new(algop.address, accounts[8]);
-    auctionHook = await AuctionHookMOCK.new();
-    auction = await AlgoPainterAuctionSystem.new(
-      '1209600',
-      accounts[9],
-      1000,
-      250,
-      [algop.address]
-    );
-    rewardRates = await AlgoPainterRewardsRates.new(
-      '1209600',
-      3000,
-      3000,
-      3000,
-      auctionHook.address,
-      auction.address,
-      gwei.address,
-      web3.utils.randomHex(20),
-      500,
-      500
-    );
+  const DEV_FEE = '250'; // 2.5%
+  const GWEI_CREATOR = accounts[7];
+  const GWEI_DEV = accounts[9];
+  const DEV_FEE_ACCOUNT = accounts[8];
+  const CREATOR_RATE = '500'; // 5%
+  const PIRS_RATE = '1500'; // 15%
+  const BIDBACK_RATE = '1000'; // 10%
 
-    await auction.setup(auctionHook.address, rewardRates.address, nftCreators.address);
+  const USER_ONE = accounts[1];
+  const USER_TWO = accounts[2];
+  const USER_THREE = accounts[3];
+  const USER_FOUR = accounts[4];
 
-    const amount = web3.utils.toWei('300', 'ether');
+  const assertBalance = async (account, amount) => {
+      const balance = await contracts.ALGOP.balanceOf(account);
+      return expect(balance.toString()).to.be.equal(amount, 'account ' + account.toString() + " is not valid, its " + balance.toString());
+  }
 
-    await algop.approve(gwei.address, amount);
-    await gwei.mint(1, 'new text', false, 0, 2, amount, 'URI');
-    await gwei.setApprovalForAll(auction.address, true);
-    await auction.setAlgoPainterNFTCreators(nftCreators.address);
-    await nftCreators.setCreator(gwei.address, accounts[8]);
+  it('Should initiate contracts', async () => {
+      contracts.ALGOP = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
+      contracts.Gwei = await AlgoPainterGweiItem.new(contracts.ALGOP.address, GWEI_DEV);
+      contracts.NFTCreators = await AlgoPainterNFTCreators.new();
+      contracts.Storage = await AlgoPainterStorage.new();
+      contracts.Security = await AlgoPainterSecurity.new(contracts.Storage.address);
+      contracts.AuctionSystemHook = await AlgoPainterAuctionSystemHook.new();
+      contracts.AuctionSystem = await AlgoPainterAuctionSystem.new(
+          '1209600',
+          DEV_FEE_ACCOUNT,
+          DEV_FEE,
+          DEV_FEE,
+          [contracts.ALGOP.address],
+          contracts.AuctionSystemHook.address
+      );
+      contracts.RewardsDistributor = await AlgoPainterRewardsDistributor.new(
+          '1209600',
+          contracts.AuctionSystem.address,
+          contracts.ALGOP.address
+      );
+      contracts.RewardsRates = await AlgoPainterRewardsRates.new(
+          '1209600',
+          3000,
+          3000,
+          3000,
+          contracts.RewardsDistributor.address,
+          contracts.AuctionSystem.address,
+          contracts.Gwei.address,
+          web3.utils.randomHex(20),
+          CREATOR_RATE,
+          CREATOR_RATE
+      );
+
+      //configure Auction System
+      await contracts.AuctionSystem.setRates(contracts.RewardsRates.address);
+      await contracts.AuctionSystem.setRewardsDistributorAddress(contracts.RewardsDistributor.address);
+      await contracts.AuctionSystem.setCreators(contracts.NFTCreators.address);
+
+      //configure Auction Hook
+      await contracts.AuctionSystemHook.grantRole(await contracts.AuctionSystemHook.HOOK_CALLER_ROLE(), contracts.AuctionSystem.address);
+      await contracts.AuctionSystemHook.setAll([
+          contracts.RewardsRates.address,
+          contracts.RewardsDistributor.address,
+          contracts.NFTCreators.address,
+          contracts.Storage.address,
+          contracts.Security.address
+      ]);
+
+      //configure Rates
+      await contracts.RewardsRates.grantRole(await contracts.RewardsRates.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+      
+      //configure Rewards
+      await contracts.RewardsDistributor.setRewardsRatesProviderAddress(contracts.RewardsRates.address);
+      await contracts.RewardsDistributor.grantRole(await contracts.RewardsDistributor.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+
+      //configure NFTCreators
+      await contracts.NFTCreators.grantRole(await contracts.NFTCreators.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+      await contracts.NFTCreators.setCreator(contracts.Gwei.address, GWEI_CREATOR);
+
+      //configure Storage
+      await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+      await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.Security.address);
+
+      //configurations for unit test
+      await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true);
+      await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_ONE });
+      await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_TWO });
+      await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_THREE });
+      await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_FOUR });
+      await contracts.Gwei.setApprovalForAll(USER_ONE, true);
+      await contracts.Gwei.setApprovalForAll(USER_TWO, true);
+      await contracts.Gwei.setApprovalForAll(USER_THREE, true);
+      await contracts.Gwei.setApprovalForAll(USER_FOUR, true);
+      await contracts.Gwei.manageWhitelist([USER_ONE, USER_TWO], true);
+
+      await contracts.ALGOP.transfer(USER_ONE, web3.utils.toWei('10000', 'ether'));
+      await contracts.ALGOP.transfer(USER_TWO, web3.utils.toWei('10000', 'ether'));
+      await contracts.ALGOP.transfer(USER_THREE, web3.utils.toWei('10000', 'ether'));
+      await contracts.ALGOP.transfer(USER_FOUR, web3.utils.toWei('10000', 'ether'));
+      await contracts.ALGOP.approve(contracts.Gwei.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
+      await contracts.ALGOP.approve(contracts.Gwei.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
+      await contracts.ALGOP.approve(contracts.AuctionSystem.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
+      await contracts.ALGOP.approve(contracts.RewardsDistributor.address, web3.utils.toWei('10000', 'ether'), { from: USER_ONE });
+      await contracts.ALGOP.approve(contracts.AuctionSystem.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
+      await contracts.ALGOP.approve(contracts.RewardsDistributor.address, web3.utils.toWei('10000', 'ether'), { from: USER_TWO });
+      await contracts.ALGOP.approve(contracts.AuctionSystem.address, web3.utils.toWei('10000', 'ether'), { from: USER_THREE });
+      await contracts.ALGOP.approve(contracts.RewardsDistributor.address, web3.utils.toWei('10000', 'ether'), { from: USER_THREE });
+      await contracts.ALGOP.approve(contracts.AuctionSystem.address, web3.utils.toWei('10000', 'ether'), { from: USER_FOUR });
+      await contracts.ALGOP.approve(contracts.RewardsDistributor.address, web3.utils.toWei('10000', 'ether'), { from: USER_FOUR });
   });
 
   it('Should set max investor pirs for all collections and a investor pirs for a specific image in a collection', async () => {
-    //await rewardRates.setMaxPIRSRate(3000);
+    await contracts.RewardsRates.setMaxPIRSRate(3000); // 
 
-    const maxPirs = await rewardRates.getMaxInvestorPirsRate();
+    const maxPirs = await contracts.RewardsRates.getMaxInvestorPirsRate();
     expect(maxPirs.toString()).to.be.equal('3000', 'fail to check maxInvestorPirsRate');
 
-    const unsettedPirs = await rewardRates.getPIRSRatePerImage(gwei.address, 1);
+    const unsettedPirs = await contracts.RewardsRates.getPIRSRatePerImage(contracts.Gwei.address, 1);
     expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorRoyaltiesRate');
 
-    await rewardRates.setPIRSRate(gwei.address, 1, 250);
+    await contracts.RewardsRates.setPIRSRate(contracts.Gwei.address, 1, 250);
 
-    const updatedPirs = await rewardRates.getPIRSRatePerImage(gwei.address, 1);
+    const updatedPirs = await contracts.RewardsRates.getPIRSRatePerImage(contracts.Gwei.address, 1);
     expect(updatedPirs.toString()).to.be.equal('250', 'fail to check creatorRoyaltiesRate');
   });
 
+  it('Should mint a gwei nft', async () => {
+    await contracts.Gwei.mint(1, 'new text', false, 0, 2, web3.utils.toWei('300', 'ether'), 'URI', { from: USER_ONE });
+    await assertBalance(USER_ONE, web3.utils.toWei('9700', 'ether'));
+    await assertBalance(GWEI_DEV, web3.utils.toWei('300', 'ether')); //Gwei Dev
+  });
+
   it('Should set max bidback for all auctions and a bidback for an auction', async () => {
-    const auctionId = await auction.getAuctionId(gwei.address, 1);
+    const auctionId = await contracts.AuctionSystem.getAuctionId(contracts.Gwei.address, 1);
 
-    // await rewardRates.setMaxBidbackRate(3000);
+    await contracts.RewardsRates.setMaxBidbackRate(3000);
 
-    const maxBidback = await rewardRates.getMaxBidbackRate();
+    const maxBidback = await contracts.RewardsRates.getMaxBidbackRate();
     expect(maxBidback.toString()).to.be.equal('3000', 'fail to check maxBidbackRate');
 
-    const now = parseInt((await auction.getNow()).toString());
-    const expirationTime = (now + 20).toString();
+    const now = parseInt((await contracts.AuctionSystem.getNow()).toString());
+    const expirationTime = (now + 10).toString();
 
     try {
-      await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address, 4000);
+      await contracts.AuctionSystem.createAuction(
+        contracts.Gwei.address, 
+        1, 
+        web3.utils.toWei('100', 'ether'), 
+        expirationTime, 
+        contracts.ALGOP.address, 
+        4000, 
+        CREATOR_RATE, 
+        PIRS_RATE, 
+        { from: USER_ONE }
+      );
     } catch (e) {
-      expect(e.reason).to.be.equal("AlgoPainterRewardsRates:BIDBACK_IS_GREATER_THAN_ALLOWED");
+      expect(e.reason).to.be.equal("BIDBACK_IS_GREATER_THAN_ALLOWED");
     }
 
-    await auction.createAuction(0, gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, algop.address, 2000);
+    await contracts.AuctionSystem.createAuction(
+      contracts.Gwei.address, 
+      1, 
+      web3.utils.toWei('100', 'ether'), 
+      expirationTime, 
+      contracts.ALGOP.address, 
+      BIDBACK_RATE, 
+      CREATOR_RATE, 
+      PIRS_RATE, 
+      { from: USER_ONE }
+    );
 
-    const bidback = await rewardRates.getBidbackRate(auctionId);
-    expect(bidback.toString()).to.be.equal('2000', 'fail to check bidbackRate');
+    const bidback = await contracts.RewardsRates.getBidbackRate(auctionId);
+    expect(bidback.toString()).to.be.equal('1000', 'fail to check bidbackRate');
   });
 
   it('Should set max creator pirs and a creator pirs for a collection', async () => {
-    // await rewardRates.setMaxCreatorRoyaltiesRate(3000);
+    await contracts.RewardsRates.setMaxCreatorRoyaltiesRate(3000);
 
-    const maxPirs = await rewardRates.getMaxCreatorRoyaltiesRate();
+    const maxPirs = await contracts.RewardsRates.getMaxCreatorRoyaltiesRate();
     expect(maxPirs.toString()).to.be.equal('3000', 'fail to check maxCreatorRoyaltiesRate');
 
-    // const unsettedPirs = await rewardRates.getCreatorRoyaltiesRate(0);
-    // expect(unsettedPirs.toString()).to.be.equal('0', 'fail to check creatorRoyaltiesRate');
+    const unsettedPirs = await contracts.RewardsRates.getCreatorRoyaltiesRate(0);
+    expect(unsettedPirs.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
 
-    // await rewardRates.setCreatorRoyaltiesRate(gwei.address, 150);
+    await contracts.RewardsRates.setCreatorRoyaltiesRate(contracts.Gwei.address, 150);
 
-    const updatedPirs = await rewardRates.getCreatorRoyaltiesRate(0);
+    const updatedPirs = await contracts.RewardsRates.getCreatorRoyaltiesRate(0);
     expect(updatedPirs.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
 
-    const updatedPirsByAddress = await rewardRates.getCreatorRoyaltiesByTokenAddress(gwei.address);
+    const updatedPirsByAddress = await contracts.RewardsRates.getCreatorRoyaltiesByTokenAddress(contracts.Gwei.address);
     expect(updatedPirsByAddress.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
 
-    const updatedPirsByAddress2 = await rewardRates.getCreatorRate(gwei.address, 0);
+    const updatedPirsByAddress2 = await contracts.RewardsRates.getCreatorRate(contracts.Gwei.address, 0);
     expect(updatedPirsByAddress2.toString()).to.be.equal('500', 'fail to check creatorRoyaltiesRate');
   });
 
   it('Should return the sum of all rewards', async () => {
-    const auctionId = await auction.getAuctionId(gwei.address, 1);
+    const auctionId = await contracts.AuctionSystem.getAuctionId(contracts.Gwei.address, 1);
 
-    const pirsRate = await rewardRates.getPIRSRate(auctionId);
-    const bidbackRate = await rewardRates.getBidbackRate(auctionId);
-    const rewardsRate = await rewardRates.getRewardsRate(auctionId);
-    expect(rewardsRate.toString()).to.be.equal('2250', 'fail to check rewards rate');
+    const pirsRate = await contracts.RewardsRates.getPIRSRate(auctionId);
+    const bidbackRate = await contracts.RewardsRates.getBidbackRate(auctionId);
+    const rewardsRate = await contracts.RewardsRates.getRewardsRate(auctionId);
+    expect(rewardsRate.toString()).to.be.equal('0', 'fail to check rewards rate');
     expect(pirsRate.toString()).to.be.equal('250', 'fail to check rewards rate');
-    expect(bidbackRate.toString()).to.be.equal('2000', 'fail to check rewards rate');
+    expect(bidbackRate.toString()).to.be.equal('1000', 'fail to check rewards rate');
   });
 });
