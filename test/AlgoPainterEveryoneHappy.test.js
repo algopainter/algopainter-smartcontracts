@@ -1,5 +1,5 @@
 //This is a happy scenario testing no mocks
-contract.only('AlgoPainterEveryoneHappy', accounts => {
+contract('AlgoPainterEveryoneHappy', accounts => {
     const sleep = require('sleep');
     const AlgoPainterToken = artifacts.require('AlgoPainterToken');
     const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
