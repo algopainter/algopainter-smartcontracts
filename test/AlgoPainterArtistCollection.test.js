@@ -121,6 +121,15 @@ contract('AlgoPainterArtistCollection', accounts => {
     await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
     await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.Security.address);
 
+    //configure Artist Collection
+    await contracts.ArtistCollection.grantRole(await contracts.ArtistCollection.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+    await contracts.ArtistCollection.grantRole(await contracts.ArtistCollection.CONFIGURATOR_ROLE(), contracts.Security.address);
+
+    //configure Artist Collection Item
+    await contracts.ArtistCollectionItem.grantRole(await contracts.ArtistCollectionItem.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+    await contracts.ArtistCollectionItem.grantRole(await contracts.ArtistCollectionItem.CONFIGURATOR_ROLE(), contracts.Security.address);
+    await contracts.ArtistCollectionItem.grantRole(await contracts.ArtistCollectionItem.CONFIGURATOR_ROLE(), contracts.Security.address);
+
     //configurations for unit test
     await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true);
     await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_ONE });
