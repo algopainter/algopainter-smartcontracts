@@ -45,19 +45,27 @@ const Configurator = function () {
     console.log('=====================================================================================');
 
     const auctionHook = new web3.eth.Contract(AlgoPainterAuctionHook.abi, contractsAddress.AlgoPainterAuctionHook).methods;
-
     if (this.write) {
-      const grantRoleHookTx = auctionHook.grantRole(await auctionHook.HOOK_CALLER_ROLE(), contractsAddress.AlgoPainterAuctionSystem);
-      const setAllTx = auctionHook.setAll([
+      const grantRoleHookTx = auctionHook.grantRole(await auctionHook.HOOK_CALLER_ROLE().call(), contractsAddress.AlgoPainterAuctionSystem);
+      const addresses = [
         contractsAddress.AlgoPainterRewardsRates,
         contractsAddress.AlgoPainterRewardsDistributor,
         contractsAddress.AlgoPainterNFTCreators,
         contractsAddress.AlgoPainterStorage,
         contractsAddress.AlgoPainterSecurity
-      ]);
+      ];
+      const setRatesTx = auctionHook.setRates(addresses[0]);
+      const setDistributorTx = auctionHook.setDistributor(addresses[1]);
+      const setNFTCreatorsTx = auctionHook.setNFTCreators(addresses[2]);
+      const setStorageTx = auctionHook.setStorage(addresses[3]);
+      const setSecurityTx = auctionHook.setSecurity(addresses[4]);
 
       await this.sendTransaction('grantRoleHookTx', grantRoleHookTx);
-      await this.sendTransaction('setAllTx', setAllTx);
+      await this.sendTransaction('setRatesTx', setRatesTx);
+      await this.sendTransaction('setDistributorTx', setDistributorTx);
+      await this.sendTransaction('setNFTCreatorsTx', setNFTCreatorsTx);
+      await this.sendTransaction('setStorageTx', setStorageTx);
+      await this.sendTransaction('setSecurityTx', setSecurityTx);
     }
 
     return {
@@ -378,15 +386,15 @@ const Configurator = function () {
   try {
     Configurator.write = true;
 
-    console.log(await Configurator.nftCreators());
-    console.log(await Configurator.auctionHook());
-    console.log(await Configurator.auctionSystem());
-    console.log(await Configurator.rewardsDistributorSystem());
-    console.log(await Configurator.rewardRatesSystem());
-    console.log(await Configurator.storage());
-    console.log(await Configurator.security());
-    console.log(await Configurator.personalItem());
-    console.log(await Configurator.reloadSettings());
+    //console.log(await Configurator.nftCreators());
+    // console.log(await Configurator.auctionHook());
+    // console.log(await Configurator.auctionSystem());
+    // console.log(await Configurator.rewardsDistributorSystem());
+    // console.log(await Configurator.rewardRatesSystem());
+    // console.log(await Configurator.storage());
+    // console.log(await Configurator.security());
+    // console.log(await Configurator.personalItem());
+    // console.log(await Configurator.reloadSettings());
     console.log(contractsAddress);
 
   } catch (error) {

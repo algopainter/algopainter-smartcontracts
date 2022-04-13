@@ -16,7 +16,7 @@ contract AlgoPainterPersonalItem is
     ERC721,
     ERC721Burnable
 {
-    bytes32 private constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
+    bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
 
     using Counters for Counters.Counter;
 
@@ -51,6 +51,7 @@ contract AlgoPainterPersonalItem is
         algoPainterRewardsRates = IAuctionRewardsRates(_rewardsRatesAddress);
         devAddress = payable(_devAddress);
         mintCost = 0.1 ether;
+        grantRole(CONFIGURATOR_ROLE, msg.sender);
 
         setApprovalForAll(_auctionSystemAddress, true);
     }

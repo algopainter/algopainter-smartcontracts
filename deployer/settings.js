@@ -58,15 +58,15 @@ const contractsAddress = {
     AlgoPainterGweiItem: '0x8cfd89020019ba3da8b13cc2f3e0e5baaf82f578',
     AlgoPainterExpressionsItem: '0xbe9cac059835236da5e91cd72688c43886b63419',
     AlgoPainterNFTCreators: '0x31a8e303c6443a8b93302a3c1813ede34e5bdc79'.toLowerCase(),
-    AlgoPainterPersonalItem: '0xBbb5843f5f5eB9DBc14C10e8b8278eE20e68BB35'.toLowerCase(),
-    AlgoPainterAuctionSystem: '0x53B288e199649E2Fdc371B1F331b8b2A1dFFCC1a'.toLowerCase(),
-    AlgoPainterRewardsRates: '0xb784d074F52018AD35AEE897f75C4a37c52E4b1c'.toLowerCase(),
-    AlgoPainterRewardsDistributor: '0x7Af2b51175eCAAF29d97dFc459C7c35D9D9891dB'.toLowerCase(),
-    AlgoPainterArtistCollection: '0x00d24cE10aa99a8991eDfcd0a0D7106e40A306c3'.toLowerCase(),
-    AlgoPainterArtistCollectionItem: '0x0424Ae45DAd79461c4D0941c8CfbbF42eE6f8cB5'.toLowerCase(),
+    AlgoPainterPersonalItem: '0x9dd43f26ea4f6736b9b4d523a89d5ca4ec970297'.toLowerCase(),
+    AlgoPainterAuctionSystem: '0x58af4eda4d18bd56c4d929410549b293fa8831b3'.toLowerCase(),
+    AlgoPainterRewardsRates: '0x9484305787eb1dd21e1cb8cc5f5074afc5fc0499'.toLowerCase(),
+    AlgoPainterRewardsDistributor: '0x64c3892de29965a2829a596f0ef5a3109554ddef'.toLowerCase(),
+    AlgoPainterArtistCollection: '0x3469c794e8f4b188d8ce2f5b2d4da1ded4df0e97'.toLowerCase(),
+    AlgoPainterArtistCollectionItem: '0x799d63b20fa68970ce7cfc340ed92b2214878219'.toLowerCase(),
     AlgoPainterStorage: '0x8Ce52E1592B1819B7A9cD6B661574E5fDC68F514'.toLowerCase(),
-    AlgoPainterSecurity: ''.toLowerCase(),
-    AlgoPainterAuctionHook: ''.toLowerCase(),
+    AlgoPainterSecurity: '0x7cedcea099774862b05633a9f689457339be3e1f'.toLowerCase(),
+    AlgoPainterAuctionHook: '0xaff6b05c652cafae61a6e8eb5d5ff4a936ac1e8c'.toLowerCase(),
   }
 };
 
