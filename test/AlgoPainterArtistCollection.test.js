@@ -1,4 +1,4 @@
-contract('AlgoPainterArtistCollection', accounts => {
+contract.only('AlgoPainterArtistCollection', accounts => {
   const sleep = require('sleep');
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');
   const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
@@ -217,6 +217,9 @@ contract('AlgoPainterArtistCollection', accounts => {
 
     expect((await contracts.RewardsRates.getCreatorRate(contracts.ArtistCollectionItem.address, 1)).toString()).to.be.equal('0');
 
+    await contracts.RewardsRates.grantRole(await contracts.RewardsRates.CONFIGURATOR_ROLE(), contracts.ArtistCollectionItem.address);
+    await contracts.NFTCreators.grantRole(await contracts.NFTCreators.CONFIGURATOR_ROLE(), contracts.ArtistCollectionItem.address);
+
     await await contracts.ArtistCollectionItem.mint(
       'mouse',
       0,
@@ -226,7 +229,7 @@ contract('AlgoPainterArtistCollection', accounts => {
       { from: USER_ONE }
     );
 
-    expect((await contracts.ALGOP.balanceOf(USER_ONE)).toString()).to.be.equal(web3.utils.toWei('39999.89', 'ether'));
+    expect((await contracts.ALGOP.balanceOf(USER_ONE)).toString()).to.be.equal(web3.utils.toWei('9999.89', 'ether'));
     expect(await contracts.ArtistCollectionItem.tokenURI(1)).to.be.equal('https://ipfs.io/ipfs/QmTtDYysSdzBsnrQiaQbEKc443MFMQKPsHJisyRqU89YrZ');
     expect((await contracts.RewardsRates.getCreatorRate(contracts.ArtistCollectionItem.address, 1)).toString()).to.be.equal('500');
     expect((await contracts.RewardsRates.getCreatorRoyaltiesByTokenAddress(await contracts.ArtistCollectionItem.getTokenHashForAuction(1))).toString()).to.be.equal('500');

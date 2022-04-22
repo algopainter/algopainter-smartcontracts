@@ -1,6 +1,6 @@
 const sleep = require('sleep');
 
-contract.only('AlgoPainterRewardsDistributor', (accounts) => {
+contract('AlgoPainterRewardsDistributor', (accounts) => {
   const sleep = require('sleep');
   const AlgoPainterToken = artifacts.require('AlgoPainterToken');
   const AlgoPainterGweiItem = artifacts.require('AlgoPainterGweiItem');
