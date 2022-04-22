@@ -8,6 +8,12 @@ interface IAuctionRewardsRates {
 
     function getPIRSRate(uint256 _auctionId) external view returns (uint256);
 
+    function setPIRSRate(
+        address _tokenAddress,
+        uint256 _tokenId,
+        uint256 _investorPirsRate
+    ) external;
+
     function hasPIRSRateSetPerImage(address _tokenAddress, uint256 _tokenId)
         external
         view
@@ -33,6 +39,11 @@ interface IAuctionRewardsRates {
         external
         view
         returns (uint256);
+    
+    function isCreatorRateSet(address _adr, uint256 _token)
+        external
+        view
+        returns (bool);
 
     function getRewardsRate(uint256 _auctionId) external view returns (uint256);
 }

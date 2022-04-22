@@ -4,11 +4,6 @@ pragma solidity ^0.7.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IAlgoPainterAuctionSystem {
-    enum TokenType {
-        ERC721,
-        ERC1155
-    }
-
     enum AuctionState {
         Running,
         Ended,
@@ -17,7 +12,6 @@ interface IAlgoPainterAuctionSystem {
 
     struct AuctionInfo {
         address beneficiary;
-        TokenType tokenType;
         address tokenAddress;
         uint256 tokenId;
         uint256 minimumAmount;
@@ -33,7 +27,6 @@ interface IAlgoPainterAuctionSystem {
         view
         returns (
             address beneficiary,
-            TokenType tokenType,
             address tokenAddress,
             uint256 tokenId,
             uint256 minimumAmount,

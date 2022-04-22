@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./accessControl/AlgoPainterSimpleAccessControl.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
+import "./interfaces/IAuctionRewardsRatesHook.sol";
 import "./interfaces/IAlgoPainterAuctionSystem.sol";
-import "./interfaces/IAlgoPainterRewardsDistributor.sol";
+import "./interfaces/IAuctionRewardsDistributor.sol";
 import "./AlgoPainterContractBase.sol";
 
 contract AlgoPainterRewardsRates is
@@ -28,7 +29,8 @@ contract AlgoPainterRewardsRates is
     );
 
     IAlgoPainterAuctionSystem auctionSystem;
-    IAlgoPainterRewardsDistributor distributor;
+    IAuctionRewardsDistributor distributor;
+    IAuctionRewardsRatesHook public proxyHook;
 
     uint256 maxCreatorRoyaltiesRates;
     uint256 maxInvestorPirsRate;
@@ -44,8 +46,6 @@ contract AlgoPainterRewardsRates is
 
     mapping(bytes32 => uint256) public creatorRoyaltiesRates;
     mapping(bytes32 => bool) isCreatorRoyaltiesSet;
-
-    mapping(bytes32 => uint256) rates;
 
     constructor(
         uint256 _emergencyTimeInterval,
@@ -70,31 +70,15 @@ contract AlgoPainterRewardsRates is
         setCreatorRoyaltiesRate(bytes32(bytes20(_expression)), _expressionRate);
     }
 
-    function setRate(bytes32 hashKey, uint256 rate)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        rates[hashKey] = rate;
-    }
-
-    function getRate(bytes32 hashKey)
-        public
-        view
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (uint256)
-    {
-        return rates[hashKey];
-    }
-
-    function toggleCanSetCreatorRate() public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function toggleCanSetCreatorRate() public onlyRole(CONFIGURATOR_ROLE) {
         canResetCreatorRate = !canResetCreatorRate;
     }
 
     function setAuctionDistributorAddress(address _distributorAddress)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
-        distributor = IAlgoPainterRewardsDistributor(_distributorAddress);
+        distributor = IAuctionRewardsDistributor(_distributorAddress);
     }
 
     function getAuctionDistributorAddress() public view returns (address) {
@@ -103,28 +87,35 @@ contract AlgoPainterRewardsRates is
 
     function setAuctionSystemAddress(address _auctionSystemAddress)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         auctionSystem = IAlgoPainterAuctionSystem(_auctionSystemAddress);
     }
 
+    function setHook(address _adr)
+        public
+        onlyRole(CONFIGURATOR_ROLE)
+    {
+        proxyHook = IAuctionRewardsRatesHook(_adr);
+    }
+
     function setMaxCreatorRoyaltiesRate(uint256 _maxCreatorRoyaltiesRate)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         maxCreatorRoyaltiesRates = _maxCreatorRoyaltiesRate;
     }
 
     function setMaxPIRSRate(uint256 _maxInvestorPirsRate)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         maxInvestorPirsRate = _maxInvestorPirsRate;
     }
 
     function setMaxBidbackRate(uint256 _maxBidbackRate)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         maxBidbackRate = _maxBidbackRate;
     }
@@ -136,17 +127,12 @@ contract AlgoPainterRewardsRates is
     {
         require(
             isBidbackSet[address(auctionSystem)][_auctionId] == false,
-            "AlgoPainterRewardsRates:BIDBACK_ALREADY_SET"
-        );
-
-        require(
-            msg.sender == address(auctionSystem),
-            "AlgoPainterRewardsRates:SENDER_IS_NOT_AUCTION_CONTRACT"
+            "BIDBACK_ALREADY_SET"
         );
 
         require(
             _bidbackRate <= maxBidbackRate,
-            "AlgoPainterRewardsRates:BIDBACK_IS_GREATER_THAN_ALLOWED"
+            "BIDBACK_IS_GREATER_THAN_ALLOWED"
         );
 
         bidbackRatePerAuction[address(auctionSystem)][
@@ -155,27 +141,51 @@ contract AlgoPainterRewardsRates is
         isBidbackSet[address(auctionSystem)][_auctionId] = true;
 
         emit BidbackUpdated(_auctionId, _bidbackRate);
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onSetBidbackRate(_auctionId, _bidbackRate);
+        }
     }
 
     function setPIRSRate(
         address _tokenAddress,
         uint256 _tokenId,
         uint256 _investorPirsRate
-    ) public {
+    ) public override {
         require(
             isPIRSSet[_tokenAddress][_tokenId] == false,
-            "AlgoPainterRewardsRates:INVESTOR_PIRS_ALREADY_SET"
+            "PIRS_ALREADY_SET"
         );
 
         require(
             _investorPirsRate <= maxInvestorPirsRate,
-            "AlgoPainterRewardsRates:INVESTOR_PIRS_IS_GREATER_THAN_ALLOWED"
+            "PIRS_IS_GREATER_THAN_ALLOWED"
         );
 
         PIRSRatePerNFT[_tokenAddress][_tokenId] = _investorPirsRate;
         isPIRSSet[_tokenAddress][_tokenId] = true;
 
         emit InvestorPirsUpdated(_tokenAddress, _tokenId, _investorPirsRate);
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onSetPIRSRate(_tokenAddress, _tokenId, _investorPirsRate);
+        }
+    }
+
+    function isCreatorRateSet(address _adr, uint256 _token)
+        public
+        view
+        override
+        returns (bool)
+    {
+        bytes32 hashKey = bytes32(bytes20(_adr));
+
+        if (isCreatorRoyaltiesSet[hashKey]) {
+            return true;
+        }
+
+        hashKey = keccak256(abi.encodePacked(_adr, _token));
+        return isCreatorRoyaltiesSet[hashKey];
     }
 
     function setCreatorRoyaltiesRate(
@@ -185,19 +195,23 @@ contract AlgoPainterRewardsRates is
         if (canResetCreatorRate == false) {
             require(
                 isCreatorRoyaltiesSet[_hashAddress] == false,
-                "AlgoPainterRewardsRates:CREATOR_ROYALTIES_ALREADY_SET"
+                "CREATOR_ROYALTIES_ALREADY_SET"
             );
         }
 
         require(
             _creatorRoyaltiesRate <= maxCreatorRoyaltiesRates,
-            "AlgoPainterRewardsRates:CREATOR_ROYALTIES_IS_GREATER_THAN_ALLOWED"
+            "CREATOR_ROYALTIES_IS_GREATER_THAN_ALLOWED"
         );
 
         creatorRoyaltiesRates[_hashAddress] = _creatorRoyaltiesRate;
         isCreatorRoyaltiesSet[_hashAddress] = true;
 
         emit CreatorRoyaltiesUpdated(_hashAddress, _creatorRoyaltiesRate);
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onSetCreatorRoyaltiesRate(_hashAddress, _creatorRoyaltiesRate);
+        }
     }
 
     function getCreatorRoyaltiesByTokenAddress(bytes32 _hashAddress)
@@ -223,7 +237,7 @@ contract AlgoPainterRewardsRates is
         override
         returns (uint256)
     {
-        (, , address tAddress, uint256 tId, , , , , , ) = auctionSystem
+        (, address tAddress, uint256 tId, , , , , , ) = auctionSystem
             .getAuctionInfo(_auctionId);
 
         return PIRSRatePerNFT[tAddress][tId];
@@ -252,7 +266,7 @@ contract AlgoPainterRewardsRates is
         override
         returns (uint256)
     {
-        (, , address _tokenAddress, uint256 tokenId, , , , , , ) = auctionSystem
+        (, address _tokenAddress, uint256 tokenId, , , , , , ) = auctionSystem
             .getAuctionInfo(_auctionId);
 
         return getCreatorRate(_tokenAddress, tokenId);

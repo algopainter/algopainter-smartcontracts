@@ -10,6 +10,7 @@ import "./accessControl/AlgoPainterSimpleAccessControl.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterArtistCollection.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
+import "./interfaces/IAlgoPainterArtistCollectionItemHook.sol";
 
 contract AlgoPainterArtistCollectionItem is
     AlgoPainterSimpleAccessControl,
@@ -33,6 +34,7 @@ contract AlgoPainterArtistCollectionItem is
     IAlgoPainterNFTCreators public nftCreators;
     IAuctionRewardsRates public rewardsRates;
     IAlgoPainterArtistCollection public artistCollection;
+    IAlgoPainterArtistCollectionItemHook public proxyHook;
 
     //event NewCollection(Collection item);
     event NewCollectionNFT(
@@ -79,6 +81,13 @@ contract AlgoPainterArtistCollectionItem is
         onlyRole(CONFIGURATOR_ROLE)
     {
         nftCreators = IAlgoPainterNFTCreators(_nftCreators);
+    }
+
+    function setHook(address _hook)
+        public
+        onlyRole(CONFIGURATOR_ROLE)
+    {
+        proxyHook = IAlgoPainterArtistCollectionItemHook(_hook);
     }
 
     function setAlgoPainterRewardsRatesAddress(address rewardsRatesAddress)
@@ -326,6 +335,10 @@ contract AlgoPainterArtistCollectionItem is
             artistAccounts[0],
             tokenURI
         );
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onCollectionItemMinted(collectionId, tokenId);
+        }
     }
 
     function getTokenSenquentialNumber(uint256 _collectionId, uint256 _tokenId)

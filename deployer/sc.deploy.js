@@ -19,6 +19,9 @@ const AlgoPainterRewardsRates = require('../build/contracts/AlgoPainterRewardsRa
 const AlgoPainterRewardsDistributor = require('../build/contracts/AlgoPainterRewardsDistributor.json');
 const AlgoPainterArtistCollection = require('../build/contracts/AlgoPainterArtistCollection.json');
 const AlgoPainterArtistCollectionItem = require('../build/contracts/AlgoPainterArtistCollectionItem.json');
+const AlgoPainterStorage = require('../build/contracts/AlgoPainterStorage.json');
+const AlgoPainterSecurity = require('../build/contracts/AlgoPainterSecurity.json');
+const AlgoPainterAutctionHook = require('../build/contracts/AlgoPainterAuctionHook.json');
 
 const deploy = async (contract, args) => {
   const instance = new web3.eth.Contract(contract.abi);
@@ -42,7 +45,7 @@ const deploy = async (contract, args) => {
 
   var dplyResult = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
 
-  console.log(contract.contractName, { gasUsed: dplyResult.gasUsed, contractAddress: dplyResult.contractAddress });
+  console.log(contract.contractName, { gasUsed: dplyResult.gasUsed, contractAddress: dplyResult.contractAddress.toLowerCase() });
 
   return dplyResult;
 }
@@ -51,12 +54,15 @@ const deploy = async (contract, args) => {
   try {
     
     // await deploy(AlgoPainterNFTCreators);
+    // const auctionHookDeployTransaction = await deploy(AlgoPainterAutctionHook);
+
     // const auctionSystemDeployTransaction = await deploy(AlgoPainterAuctionSystem, [
     //   emergencyInterval,
     //   account,
     //   fees.auction,
     //   fees.bid,
-    //   [contractsAddress.AlgoPainterToken, contractsAddress.BUSDToken]
+    //   [contractsAddress.AlgoPainterToken, contractsAddress.BUSDToken],
+    //   auctionHookDeployTransaction.contractAddress
     // ]);
     
     // const algoPainterRewardsDistributorTransaction = await deploy(AlgoPainterRewardsDistributor, [
@@ -80,34 +86,41 @@ const deploy = async (contract, args) => {
 
     // const algoPainterPersonalItemTransaction = await deploy(AlgoPainterPersonalItem, [
     //   contractsAddress.AlgoPainterNFTCreators,
-    //   algoPainterRewardsRatesTransaction.contractAddress,
-    //   auctionSystemDeployTransaction.contractAddress,
+    //   //algoPainterRewardsRatesTransaction.contractAddress,
+    //   contractsAddress.AlgoPainterRewardsRates,
+    //   //auctionSystemDeployTransaction.contractAddress,
+    //   contractsAddress.AlgoPainterAuctionSystem,
     //   account
     // ]);
 
-    const algoPainterArtistCollectionTransaction = await deploy(AlgoPainterArtistCollection, [
-      emergencyInterval,
-      //algoPainterRewardsRatesTransaction.contractAddress,
-      contractsAddress.AlgoPainterRewardsRates,
-      account,
-      web3.utils.toWei('17000', 'ether'),
-      contractsAddress.AlgoPainterToken,
-      '7776000',
-      '1',
-      '1000',
-      [contractsAddress.AlgoPainterToken, contractsAddress.BUSDToken]
-    ]);
+    // const algoPainterArtistCollectionTransaction = await deploy(AlgoPainterArtistCollection, [
+    //   emergencyInterval,
+    //   algoPainterRewardsRatesTransaction.contractAddress,
+    //   //contractsAddress.AlgoPainterRewardsRates,
+    //   account,
+    //   web3.utils.toWei('17000', 'ether'),
+    //   contractsAddress.AlgoPainterToken,
+    //   '7776000',
+    //   '1',
+    //   '1000',
+    //   [contractsAddress.AlgoPainterToken, contractsAddress.BUSDToken]
+    // ]);
 
-    const algoPainterArtistCollectionItemTransaction = await deploy(AlgoPainterArtistCollectionItem, [
-      contractsAddress.AlgoPainterNFTCreators,
-      //algoPainterRewardsRatesTransaction.contractAddress,
-      contractsAddress.AlgoPainterRewardsRates,
-      algoPainterArtistCollectionTransaction.contractAddress,
-      contractsAddress.AlgoPainterAuctionSystem,
-      account,
-      fees.auction,
-      '0'
-    ]);
+    // const algoPainterArtistCollectionItemTransaction = await deploy(AlgoPainterArtistCollectionItem, [
+    //   contractsAddress.AlgoPainterNFTCreators,
+    //   algoPainterRewardsRatesTransaction.contractAddress,
+    //   //contractsAddress.AlgoPainterRewardsRates,
+    //   algoPainterArtistCollectionTransaction.contractAddress,
+    //   //contractsAddress.AlgoPainterAuctionSystem,
+    //   auctionSystemDeployTransaction.contractAddress,
+    //   account,
+    //   fees.auction,
+    //   '0'
+    // ]);
+
+    //const algoPainterStorageTransaction = await deploy(AlgoPainterStorage);
+    // const algoPainterSecurityTransaction = await deploy(AlgoPainterSecurity, [ contractsAddress.AlgoPainterStorage ]);
+    
   } catch (e) {
     console.error(e)
   }

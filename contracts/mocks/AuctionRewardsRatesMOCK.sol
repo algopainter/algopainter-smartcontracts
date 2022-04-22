@@ -20,6 +20,14 @@ contract AuctionRewardsRatesMOCK is
         return bidbackRate[_auctionId];
     }
 
+    function setPIRSRate(
+        address _tokenAddress,
+        uint256 _tokenId,
+        uint256 _investorPirsRate
+    ) public override {
+        
+    }
+
     function getPIRSRate(uint256 _auctionId)
         public
         pure
@@ -95,4 +103,10 @@ contract AuctionRewardsRatesMOCK is
         returns (uint256) {
             return 500;
         }
+
+    function isCreatorRateSet(address _adr, uint256 _token)
+        public
+        override
+        pure
+        returns (bool) { return false; }
 }

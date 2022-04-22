@@ -9,13 +9,14 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./accessControl/AlgoPainterAccessControl.sol";
 import "./interfaces/IAuctionRewardsRates.sol";
 import "./interfaces/IAlgoPainterNFTCreators.sol";
+import "./interfaces/IAlgoPainterPersonalItemHook.sol";
 
 contract AlgoPainterPersonalItem is
     AlgoPainterAccessControl,
     ERC721,
     ERC721Burnable
 {
-    bytes32 private constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
+    bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
 
     using Counters for Counters.Counter;
 
@@ -31,6 +32,7 @@ contract AlgoPainterPersonalItem is
     IERC20 public mintToken;
     IAlgoPainterNFTCreators public nftCreators;
     IAuctionRewardsRates public algoPainterRewardsRates;
+    IAlgoPainterPersonalItemHook public proxyHook;
 
     event NewPersonalItem(
         uint256 indexed tokenId,
@@ -49,52 +51,60 @@ contract AlgoPainterPersonalItem is
         algoPainterRewardsRates = IAuctionRewardsRates(_rewardsRatesAddress);
         devAddress = payable(_devAddress);
         mintCost = 0.1 ether;
+        grantRole(CONFIGURATOR_ROLE, msg.sender);
 
         setApprovalForAll(_auctionSystemAddress, true);
     }
 
     function setMaxTokens(uint256 _maxTokens)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         maxTokens = _maxTokens;
     }
 
     function setMintCostToken(uint256 _cost)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         mintCostToken = _cost;
     }
 
     function setMintToken(address _address)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         mintToken = IERC20(_address);
     }
 
     function setDevAddress(address _devAddress)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         devAddress = payable(_devAddress);
     }
 
-    function setMintCost(uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMintCost(uint256 amount) public onlyRole(CONFIGURATOR_ROLE) {
         mintCost = amount;
+    }
+
+    function setProxy(address proxyAdr)
+        public
+        onlyRole(CONFIGURATOR_ROLE)
+    {
+        proxyHook = IAlgoPainterPersonalItemHook(proxyAdr);
     }
 
     function setAlgoPainterNFTCreators(address _nftCreators)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(CONFIGURATOR_ROLE)
     {
         nftCreators = IAlgoPainterNFTCreators(_nftCreators);
     }
 
     function setAlgoPainterRewardsRatesAddress(
         address algoPainterRewardsRatesAddress
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public onlyRole(CONFIGURATOR_ROLE) {
         algoPainterRewardsRates = IAuctionRewardsRates(
             algoPainterRewardsRatesAddress
         );
@@ -214,6 +224,10 @@ contract AlgoPainterPersonalItem is
         nftCreators.setCreator(address(this), newItemId, msg.sender);
 
         emit NewPersonalItem(newItemId, msg.sender, hashKey);
+
+        if(address(proxyHook) != address(0)) {
+            proxyHook.onItemMinted(name, newItemId, creatorPercentage, tokenURI);
+        }
 
         return hashKey;
     }

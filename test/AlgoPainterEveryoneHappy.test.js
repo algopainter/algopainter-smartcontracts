@@ -7,14 +7,21 @@ contract('AlgoPainterEveryoneHappy', accounts => {
     const AlgoPainterRewardsRates = artifacts.require('AlgoPainterRewardsRates');
     const AlgoPainterNFTCreators = artifacts.require('AlgoPainterNFTCreators');
     const AlgoPainterRewardsDistributor = artifacts.require('AlgoPainterRewardsDistributor');
+    const AlgoPainterStorage = artifacts.require('AlgoPainterStorage');
+    const AlgoPainterSecurity = artifacts.require('AlgoPainterSecurity');
+    const AlgoPainterAuctionSystemHook = artifacts.require('AlgoPainterAuctionHook');
 
     const contracts = {
         ALGOP: null,
         Gwei: null,
         AuctionSystem: null,
+        AuctionSystemHook: null,
         RewardsRates: null,
         NFTCreators: null,
-        RewardsDistributor: null
+        RewardsDistributor: null,
+        RewardsDistributorHook: null,
+        Storage: null,
+        Security: null
     }
 
     const DEV_FEE = '250'; // 2.5%
@@ -35,16 +42,20 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         return expect(balance.toString()).to.be.equal(amount, 'account ' + account.toString() + " is not valid, its " + balance.toString());
     }
 
-    it('Should initiate Contracts', async () => {
+    it('Should initiate contracts', async () => {
         contracts.ALGOP = await AlgoPainterToken.new("AlgoPainter Token", "ALGOP");
         contracts.Gwei = await AlgoPainterGweiItem.new(contracts.ALGOP.address, GWEI_DEV);
         contracts.NFTCreators = await AlgoPainterNFTCreators.new();
+        contracts.Storage = await AlgoPainterStorage.new();
+        contracts.Security = await AlgoPainterSecurity.new(contracts.Storage.address);
+        contracts.AuctionSystemHook = await AlgoPainterAuctionSystemHook.new();
         contracts.AuctionSystem = await AlgoPainterAuctionSystem.new(
             '1209600',
             DEV_FEE_ACCOUNT,
             DEV_FEE,
             DEV_FEE,
-            [contracts.ALGOP.address]
+            [contracts.ALGOP.address],
+            contracts.AuctionSystemHook.address
         );
         contracts.RewardsDistributor = await AlgoPainterRewardsDistributor.new(
             '1209600',
@@ -64,19 +75,37 @@ contract('AlgoPainterEveryoneHappy', accounts => {
             CREATOR_RATE
         );
 
+        //configure Auction System
+        await contracts.AuctionSystem.setRates(contracts.RewardsRates.address);
+        await contracts.AuctionSystem.setRewardsDistributorAddress(contracts.RewardsDistributor.address);
+        await contracts.AuctionSystem.setCreators(contracts.NFTCreators.address);
+
+        //configure Auction Hook
+        await contracts.AuctionSystemHook.grantRole(await contracts.AuctionSystemHook.HOOK_CALLER_ROLE(), contracts.AuctionSystem.address);
+        await contracts.AuctionSystemHook.setAll([
+            contracts.RewardsRates.address,
+            contracts.RewardsDistributor.address,
+            contracts.NFTCreators.address,
+            contracts.Storage.address,
+            contracts.Security.address
+        ]);
+
+        //configure Rates
+        await contracts.RewardsRates.grantRole(await contracts.RewardsRates.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+        
+        //configure Rewards
+        await contracts.RewardsDistributor.setRewardsRatesProviderAddress(contracts.RewardsRates.address);
+        await contracts.RewardsDistributor.grantRole(await contracts.RewardsDistributor.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+
+        //configure NFTCreators
+        await contracts.NFTCreators.grantRole(await contracts.NFTCreators.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
         await contracts.NFTCreators.setCreator(contracts.Gwei.address, GWEI_CREATOR);
 
-        await contracts.AuctionSystem.setup(
-            contracts.RewardsDistributor.address, 
-            contracts.RewardsRates.address, 
-            contracts.NFTCreators.address
-        );
+        //configure Storage
+        await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.AuctionSystemHook.address);
+        await contracts.Storage.grantRole(await contracts.Storage.CONFIGURATOR_ROLE(), contracts.Security.address);
 
-        await contracts.RewardsDistributor.setRewardsRatesProviderAddress(contracts.RewardsRates.address);
-        await contracts.RewardsRates.setAuctionSystemAddress(contracts.AuctionSystem.address);
-        await contracts.RewardsRates.setAuctionDistributorAddress(contracts.RewardsDistributor.address);
-        //await contracts.RewardsRates.grantRole(CONFIGURATOR_ROLE, _auctionSystem); //PERSONAL ITEM
-
+        //configurations for unit test
         await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true);
         await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_ONE });
         await contracts.Gwei.setApprovalForAll(contracts.AuctionSystem.address, true, { from: USER_TWO });
@@ -86,7 +115,7 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         await contracts.Gwei.setApprovalForAll(USER_TWO, true);
         await contracts.Gwei.setApprovalForAll(USER_THREE, true);
         await contracts.Gwei.setApprovalForAll(USER_FOUR, true);
-        await contracts.Gwei.manageWhitelist([USER_ONE], true);
+        await contracts.Gwei.manageWhitelist([USER_ONE, USER_TWO], true);
 
         await contracts.ALGOP.transfer(USER_ONE, web3.utils.toWei('10000', 'ether'));
         await contracts.ALGOP.transfer(USER_TWO, web3.utils.toWei('10000', 'ether'));
@@ -116,7 +145,17 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         const now = parseInt((await contracts.AuctionSystem.getNow()).toString());
         const expirationTime = (now + 10).toString();
 
-        await contracts.AuctionSystem.createAuction(0, contracts.Gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, contracts.ALGOP.address, BIDBACK_RATE, { from: USER_ONE });
+        await contracts.AuctionSystem.createAuction(
+            contracts.Gwei.address, 
+            1, 
+            web3.utils.toWei('100', 'ether'), 
+            expirationTime, 
+            contracts.ALGOP.address, 
+            BIDBACK_RATE, 
+            CREATOR_RATE, 
+            PIRS_RATE, 
+            { from: USER_ONE }
+        );
 
         const auctionId = await contracts.AuctionSystem.getAuctionId(contracts.Gwei.address, 1);
 
@@ -135,7 +174,17 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         const now = parseInt((await contracts.AuctionSystem.getNow()).toString());
         const expirationTime = (now + 15).toString();
 
-        await contracts.AuctionSystem.createAuction(0, contracts.Gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, contracts.ALGOP.address, BIDBACK_RATE, { from: USER_TWO });
+        await contracts.AuctionSystem.createAuction(
+            contracts.Gwei.address, 
+            1, 
+            web3.utils.toWei('100', 'ether'), 
+            expirationTime, 
+            contracts.ALGOP.address, 
+            BIDBACK_RATE, 
+            CREATOR_RATE, 
+            PIRS_RATE, 
+            { from: USER_TWO }
+        );
 
         const auctionId = await contracts.AuctionSystem.getAuctionId(contracts.Gwei.address, 1);
 
@@ -163,7 +212,17 @@ contract('AlgoPainterEveryoneHappy', accounts => {
         const now = parseInt((await contracts.AuctionSystem.getNow()).toString());
         const expirationTime = (now + 15).toString();
 
-        await contracts.AuctionSystem.createAuction(0, contracts.Gwei.address, 1, web3.utils.toWei('100', 'ether'), expirationTime, contracts.ALGOP.address, BIDBACK_RATE, { from: USER_FOUR });
+        await contracts.AuctionSystem.createAuction(
+            contracts.Gwei.address, 
+            1, 
+            web3.utils.toWei('100', 'ether'), 
+            expirationTime, 
+            contracts.ALGOP.address, 
+            BIDBACK_RATE, 
+            CREATOR_RATE, 
+            PIRS_RATE, 
+            { from: USER_FOUR }
+        );
 
         await assertBalance(USER_ONE, web3.utils.toWei('10625', 'ether'));
         await assertBalance(USER_TWO, web3.utils.toWei('9800', 'ether'));
